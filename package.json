@@ -1,0 +1,23 @@
+{
+  "name": "pm-community",
+  "version": "1.0.0",
+  "description": "PM(Product Manager), PO(Product Owner), 서비스 기획자들을 위한 커뮤니티 웹사이트입니다.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "live-server --port=3000 --open=index.html",
+    "start": "live-server --port=3000 --open=index.html",
+    "serve": "live-server --port=8080 --open=index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "pm",
+    "product-manager",
+    "community",
+    "korean"
+  ],
+  "author": "PM Community Team",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

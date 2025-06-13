@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM 커뮤니티 - PM들의 수다</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="#" onclick="showHomePage()">
+                        <img src="pm-logo.jpg" alt="PM 로고" class="logo-img">
+                    </a>
+                </div>
+                <nav class="nav">
+                    <ul class="nav-list">
+                        <li><a href="#" onclick="showBoard('job-info')">직무</a></li>
+                        <li><a href="#" onclick="showBoard('career-prep')">취업준비</a></li>
+                        <li><a href="#" onclick="showBoard('news')">뉴스</a></li>
+                        <li><a href="#" onclick="showBoard('policy-library')">정책도서관</a></li>
+                        <li><a href="#" onclick="showBoard('faq')">자주나오는 질문</a></li>
+                        <li><a href="#" onclick="showBoard('study')">스터디</a></li>
+                        <li><a href="#" onclick="showCategory('books')">추천도서</a></li>
+                        <li><a href="#" onclick="openKakaoChat()">카톡방</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 홈 페이지 -->
+    <div id="home-page" class="page-content">
+        <!-- 히어로 섹션 -->
+        <section class="hero">
+            <div class="hero-image" style="background-image: url('pm-background.png');">
+                <div class="hero-overlay">
+                    <div class="container">
+                        <div class="hero-content">
+                            <h1 class="hero-title">PM들의 수다에 오신 여러분 환영합니다</h1>
+                            <p class="hero-subtitle">
+                                여러분의 현재 직무가 서비스기획이실수도 있고, PM, PO, 혹은 이쪽 분야에 관심을 가지고 취업을 준비중이실 수도 있습니다.<br>
+                                그리고 그 길이 막막하고 쉽지 않을 수 있다는 것도 알고 있습니다.<br>
+                                그럼에도 여러분에게 조금이나마 도움이 되는 공간이길 바래봅니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main">
+            <div class="container">
+                <!-- 최근 게시글 미리보기 -->
+                <section class="section">
+                    <h2 class="section-title">최근 게시글</h2>
+                    <div class="recent-posts" id="recent-posts">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                </section>
+
+                <!-- 카테고리 소개 -->
+                <section class="section">
+                    <h2 class="section-title">커뮤니티 카테고리</h2>
+                    <div class="category-grid">
+                        <div class="category-card" onclick="showBoard('job-info')">
+                            <i class="fas fa-briefcase"></i>
+                            <h3>직무</h3>
+                            <p>PM/PO 직무 정보와 역할 가이드</p>
+                        </div>
+                        <div class="category-card" onclick="showBoard('career-prep')">
+                            <i class="fas fa-graduation-cap"></i>
+                            <h3>취업준비</h3>
+                            <p>면접 팁과 포트폴리오 작성법</p>
+                        </div>
+                        <div class="category-card" onclick="showBoard('news')">
+                            <i class="fas fa-newspaper"></i>
+                            <h3>뉴스</h3>
+                            <p>PM 업계 트렌드와 채용 정보</p>
+                        </div>
+                        <div class="category-card" onclick="showBoard('policy-library')">
+                            <i class="fas fa-book"></i>
+                            <h3>정책도서관</h3>
+                            <p>법적 요구사항과 정책 정보</p>
+                        </div>
+                        <div class="category-card" onclick="showBoard('faq')">
+                            <i class="fas fa-question-circle"></i>
+                            <h3>자주나오는 질문</h3>
+                            <p>신입/경력 PM들의 질문과 답변</p>
+                        </div>
+                        <div class="category-card" onclick="showBoard('study')">
+                            <i class="fas fa-users"></i>
+                            <h3>스터디</h3>
+                            <p>함께 성장하는 스터디 그룹</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 게시판 페이지 -->
+    <div id="board-page" class="page-content" style="display: none;">
+        <div class="board-container">
+            <div class="container">
+                <!-- 게시판 헤더 -->
+                <div class="board-header">
+                    <button class="back-btn" onclick="showHomePage()">
+                        <i class="fas fa-arrow-left"></i> 홈으로
+                    </button>
+                    <h1 id="board-title" class="board-title">게시판</h1>
+                    <button class="write-btn" onclick="showWriteModal()">
+                        <i class="fas fa-edit"></i> 글쓰기
+                    </button>
+                </div>
+
+                <!-- 게시글 목록 -->
+                <div class="posts-list" id="posts-list">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 글쓰기 모달 -->
+    <div id="write-modal" class="modal">
+        <div class="modal-content write-modal-content">
+            <div class="modal-header">
+                <h2>글쓰기</h2>
+                <span class="close" onclick="closeWriteModal()">&times;</span>
+            </div>
+            <form id="write-form" class="write-form">
+                <div class="form-group">
+                    <label for="post-title">제목</label>
+                    <input type="text" id="post-title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-content">내용</label>
+                    <div class="editor-toolbar">
+                        <button type="button" onclick="formatText('bold')" title="굵게">
+                            <i class="fas fa-bold"></i>
+                        </button>
+                        <button type="button" onclick="formatText('italic')" title="기울임">
+                            <i class="fas fa-italic"></i>
+                        </button>
+                        <button type="button" onclick="formatText('underline')" title="밑줄">
+                            <i class="fas fa-underline"></i>
+                        </button>
+                        <button type="button" onclick="insertImage()" title="이미지 삽입">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    </div>
+                    <div id="post-content" class="editor-content" contenteditable="true" placeholder="내용을 입력하세요..."></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="post-source">출처 (선택사항)</label>
+                    <input type="text" id="post-source" name="source" placeholder="출처 URL 또는 정보">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="closeWriteModal()" class="btn-cancel">취소</button>
+                    <button type="submit" class="btn-submit">게시</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 카카오톡 오픈채팅 모달 -->
+    <div id="kakaoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeKakaoModal()">&times;</span>
+            <h2>🗨️ PM들의 수다 카카오톡 오픈채팅</h2>
+            <div class="kakao-info">
+                <p><strong>PM/PO/서비스 기획자들을 위한 소통 공간입니다!</strong></p>
+                <ul>
+                    <li>실무 경험 공유 및 질문</li>
+                    <li>취업 정보 및 채용 공고</li>
+                    <li>스터디 모집 및 네트워킹</li>
+                    <li>업계 트렌드 및 뉴스 공유</li>
+                </ul>
+            </div>
+            <div class="kakao-link">
+                <a href="https://open.kakao.com/o/gKGrcp1d" target="_blank" class="kakao-btn">
+                    카카오톡 오픈채팅 참여하기
+                </a>
+            </div>
+            <p class="kakao-note">* 건전한 토론 문화를 위해 예의를 지켜주세요</p>
+        </div>
+    </div>
+
+    <!-- 책 추가 모달 -->
+    <div id="addBookModal" class="modal">
+        <div class="modal-content add-book-modal-content">
+            <div class="modal-header">
+                <h2>📚 새 책 추가하기</h2>
+                <span class="close" onclick="closeAddBookModal()">&times;</span>
+            </div>
+            <form class="add-book-form" onsubmit="addNewBook(event)">
+                <div class="form-group">
+                    <label for="bookTitle">책 이름 *</label>
+                    <input type="text" id="bookTitle" name="bookTitle" required placeholder="책 제목을 입력하세요">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookImage">책 사진</label>
+                    <input type="file" id="bookImage" name="bookImage" accept="image/*" onchange="previewBookImage(event)">
+                    <div class="image-preview" id="imagePreview" style="display: none;">
+                        <img id="previewImg" src="" alt="미리보기">
+                        <button type="button" onclick="removeImagePreview()">삭제</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookAuthor">저자</label>
+                    <input type="text" id="bookAuthor" name="bookAuthor" placeholder="저자명을 입력하세요">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookPublisher">출판사</label>
+                    <input type="text" id="bookPublisher" name="bookPublisher" placeholder="출판사를 입력하세요">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookCategory">카테고리</label>
+                    <select id="bookCategory" name="bookCategory">
+                        <option value="inspire">영감/동기부여</option>
+                        <option value="business">비즈니스</option>
+                        <option value="strategy">전략</option>
+                        <option value="leadership">리더십</option>
+                        <option value="product">제품관리</option>
+                        <option value="data">데이터/분석</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookTags">태그 (쉼표로 구분)</label>
+                    <input type="text" id="bookTags" name="bookTags" placeholder="예: PM/PO/전략/경영, 필독도서, 주니어">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookReason">추천하는 이유 *</label>
+                    <textarea id="bookReason" name="bookReason" required placeholder="이 책을 추천하는 이유를 작성해주세요" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookContent">적고싶은 내용</label>
+                    <div class="editor-toolbar">
+                        <button type="button" onclick="formatBookText('bold')"><i class="fas fa-bold"></i></button>
+                        <button type="button" onclick="formatBookText('italic')"><i class="fas fa-italic"></i></button>
+                        <button type="button" onclick="formatBookText('underline')"><i class="fas fa-underline"></i></button>
+                    </div>
+                    <div class="editor-content" id="bookContentEditor" contenteditable="true" 
+                         placeholder="책에 대한 자세한 내용이나 감상을 자유롭게 작성해주세요"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bookAuthorName">작성자 *</label>
+                    <input type="text" id="bookAuthorName" name="bookAuthorName" required placeholder="작성자명을 입력하세요">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeAddBookModal()">취소</button>
+                    <button type="submit" class="btn-submit">책 추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 책 상세보기 모달 -->
+    <div id="bookDetailModal" class="modal">
+        <div class="modal-content book-detail-modal-content">
+            <div class="modal-header">
+                <h2 id="detailBookTitle">책 제목</h2>
+                <span class="close" onclick="closeBookDetailModal()">&times;</span>
+            </div>
+            <div class="book-detail-content">
+                <div class="book-detail-image">
+                    <div id="detailBookCover" class="book-cover-large">
+                        <i class="fas fa-book"></i>
+                    </div>
+                </div>
+                <div class="book-detail-info">
+                    <div class="book-meta">
+                        <p><strong>저자:</strong> <span id="detailBookAuthor">-</span></p>
+                        <p><strong>출판사:</strong> <span id="detailBookPublisher">-</span></p>
+                        <p><strong>추가일:</strong> <span id="detailBookDate">-</span></p>
+                        <p><strong>작성자:</strong> <span id="detailBookWriter">-</span></p>
+                    </div>
+                    <div class="book-tags-detail" id="detailBookTags">
+                        <!-- 태그들이 여기에 추가됩니다 -->
+                    </div>
+                    <div class="book-reason">
+                        <h4>📝 추천 이유</h4>
+                        <p id="detailBookReason">-</p>
+                    </div>
+                    <div class="book-content-detail">
+                        <h4>💭 상세 내용</h4>
+                        <div id="detailBookContent">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 추천도서 페이지 -->
+    <div id="books-page" class="page-content" style="display: none;">
+        <div class="container">
+            <div class="books-container">
+                <div class="books-header">
+                    <button class="back-btn" onclick="showHomePage()">
+                        <i class="fas fa-arrow-left"></i> 홈으로
+                    </button>
+                    <h1 class="books-title">📚 PM/PO 추천도서</h1>
+                    <div class="books-actions">
+                        <div class="books-filter">
+                            <select id="bookFilter" onchange="filterBooks()">
+                                <option value="all">전체</option>
+                                <option value="PM/PO/전략/경영">PM/PO/전략/경영</option>
+                                <option value="시니어">시니어</option>
+                                <option value="경영진">경영진</option>
+                                <option value="필독도서">필독도서</option>
+                                <option value="주니어">주니어</option>
+                            </select>
+                        </div>
+                        <button class="add-book-btn" onclick="showAddBookModal()">
+                            <i class="fas fa-plus"></i> 책 추가
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="books-grid" id="booksGrid">
+                    <!-- 책 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+                
+                <div class="books-reference">
+                    <h3>📖 참고 링크</h3>
+                    <p>더 많은 PM/PO 추천도서를 확인하고 싶으시다면 아래 링크를 참고해주세요:</p>
+                    <a href="https://semiol3.notion.site/660e370d3dc5456fb9ad2ccba1276b55?v=7fdeb58374f44b72948ad38e4cba60a6" 
+                       target="_blank" class="reference-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        PM/PO 도서 목록 (Notion)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 컨설팅 페이지 -->
+    <div id="consulting-page" class="page-content" style="display: none;">
+        <div class="container">
+            <div class="consulting-container">
+                <div class="consulting-header">
+                    <button class="back-btn" onclick="showBoard('career')">
+                        <i class="fas fa-arrow-left"></i> 취업준비로 돌아가기
+                    </button>
+                    <h1 class="consulting-title">💼 PM/PO 커리어 컨설팅</h1>
+                </div>
+                
+                <div class="consulting-intro">
+                    <div class="intro-card">
+                        <h2>🎯 전문 컨설팅 서비스</h2>
+                        <p>PM들의 수다 방장님께서 직접 제공하는 1:1 맞춤형 커리어 컨설팅입니다.</p>
+                        
+                        <div class="consulting-services">
+                            <div class="service-item">
+                                <i class="fas fa-file-alt"></i>
+                                <h3>이력서 컨설팅</h3>
+                                <p>PM/PO 포지션에 최적화된 이력서 작성 및 피드백</p>
+                            </div>
+                            <div class="service-item">
+                                <i class="fas fa-briefcase"></i>
+                                <h3>경력기술서 작성</h3>
+                                <p>프로젝트 경험을 효과적으로 어필하는 경력기술서 가이드</p>
+                            </div>
+                            <div class="service-item">
+                                <i class="fas fa-folder-open"></i>
+                                <h3>포트폴리오 리뷰</h3>
+                                <p>실무진이 원하는 포트폴리오 구성 및 개선 방안</p>
+                            </div>
+                            <div class="service-item">
+                                <i class="fas fa-route"></i>
+                                <h3>커리어 로드맵</h3>
+                                <p>개인별 맞춤 커리어 패스 설계 및 성장 전략</p>
+                            </div>
+                        </div>
+                        
+                        <div class="consulting-cta">
+                            <h3>🚀 지금 바로 컨설팅 받아보세요!</h3>
+                            <p>전문가의 1:1 맞춤 피드백으로 취업 성공률을 높이세요.</p>
+                            <a href="https://open.kakao.com/o/sgyqx68g" target="_blank" class="consulting-btn">
+                                <i class="fas fa-comments"></i>
+                                컨설팅 신청하기 (카카오톡)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="consulting-reviews">
+                    <h2>✨ 컨설팅 후기</h2>
+                    <p>실제 컨설팅을 받으신 분들의 생생한 후기를 확인해보세요!</p>
+                    
+                    <div class="reviews-gallery" id="reviewsGallery">
+                        <!-- 후기 이미지들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    
+                    <div class="reviews-placeholder" id="reviewsPlaceholder">
+                        <i class="fas fa-images"></i>
+                        <h3>후기 이미지 준비 중</h3>
+                        <p>곧 다양한 컨설팅 후기들을 만나보실 수 있습니다!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2024 PM 커뮤니티. 모든 권리 보유.</p>
+                <p>함께 성장하는 PM 커뮤니티</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="board.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 
