@@ -114,50 +114,8 @@ class HybridBoardManager {
                         author: 'PM김철수'
                     }
                 ],
-                'career-prep': [
-                    {
-                        id: 3,
-                        title: 'PM 포트폴리오 작성 완전 가이드',
-                        content: `PM 취업을 위한 포트폴리오 작성법을 단계별로 안내드립니다.
-
-<strong>1. 프로젝트 선정</strong>
-실제 업무 경험이나 개인 프로젝트 중 성과가 명확한 것을 선택하세요.
-
-<strong>2. 구성 요소</strong>
-• 문제 정의 및 배경
-• 해결 과정 및 방법론
-• 성과 및 학습점
-
-<strong>3. 시각화</strong>
-• 플로우차트, 와이어프레임 활용
-• 데이터는 그래프로 표현
-• Before/After 비교 필수`,
-                        source: 'PM 취업 준비 커뮤니티',
-                        date: new Date('2024-12-18'),
-                        author: '취업멘토'
-                    }
-                ],
-                'news': [
-                    {
-                        id: 4,
-                        title: '2024년 PM 채용 시장 동향 분석',
-                        content: `올해 PM 채용 시장의 주요 트렌드를 분석해보았습니다.
-
-<strong>주요 트렌드:</strong>
-• AI/ML 이해도 요구 증가
-• 데이터 분석 역량 중시
-• 사용자 경험(UX) 전문성 강화
-• 애자일/스크럼 경험 필수
-
-<strong>주요 기업별 채용 현황:</strong>
-• 테크 스타트업: 전년 대비 30% 증가
-• 대기업: 신규 디지털 전환 프로젝트 확대
-• 금융권: 핀테크 부문 PM 수요 증가`,
-                        source: 'IT 채용 동향 리포트 2024',
-                        date: new Date('2024-12-17'),
-                        author: '뉴스팀'
-                    }
-                ]
+                'career-prep': [],
+                'news': []
             };
             this.saveLocalPosts();
         }
@@ -200,44 +158,7 @@ class HybridBoardManager {
                 source: 'https://example.com/po-vs-pm',
                 author: 'PM김철수'
             },
-            {
-                boardId: 'career-prep',
-                title: 'PM 포트폴리오 작성 완전 가이드',
-                content: `PM 취업을 위한 포트폴리오 작성법을 단계별로 안내드립니다.
 
-<strong>1. 프로젝트 선정</strong>
-실제 업무 경험이나 개인 프로젝트 중 성과가 명확한 것을 선택하세요.
-
-<strong>2. 구성 요소</strong>
-• 문제 정의 및 배경
-• 해결 과정 및 방법론
-• 성과 및 학습점
-
-<strong>3. 시각화</strong>
-• 플로우차트, 와이어프레임 활용
-• 데이터는 그래프로 표현
-• Before/After 비교 필수`,
-                source: 'PM 취업 준비 커뮤니티',
-                author: '취업멘토'
-            },
-            {
-                boardId: 'news',
-                title: '2024년 PM 채용 시장 동향 분석',
-                content: `올해 PM 채용 시장의 주요 트렌드를 분석해보았습니다.
-
-<strong>주요 트렌드:</strong>
-• AI/ML 이해도 요구 증가
-• 데이터 분석 역량 중시
-• 사용자 경험(UX) 전문성 강화
-• 애자일/스크럼 경험 필수
-
-<strong>주요 기업별 채용 현황:</strong>
-• 테크 스타트업: 전년 대비 30% 증가
-• 대기업: 신규 디지털 전환 프로젝트 확대
-• 금융권: 핀테크 부문 PM 수요 증가`,
-                source: 'IT 채용 동향 리포트 2024',
-                author: '뉴스팀'
-            }
         ];
 
         for (const post of samplePosts) {
