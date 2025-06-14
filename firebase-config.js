@@ -289,6 +289,7 @@ async function updateUserNickname(user) {
                 };
                 
                 // 회원 관리 메뉴 표시 여부 결정
+                console.log('사용자 등급:', userData.role);
                 updateUserManagementMenu(userData.role);
                 
             } else {
@@ -325,9 +326,19 @@ async function updateUserNickname(user) {
 // 회원 관리 메뉴 표시 업데이트
 function updateUserManagementMenu(userRole) {
     const userManagementMenu = document.getElementById('user-management-menu');
-    if (userManagementMenu && window.boardManager) {
+    if (!userManagementMenu) return;
+    
+    // boardManager가 초기화될 때까지 대기
+    if (window.boardManager && window.boardManager.canManageUsers) {
         const canManage = window.boardManager.canManageUsers(userRole || 'general');
         userManagementMenu.style.display = canManage ? 'block' : 'none';
+        console.log('회원 관리 메뉴 업데이트:', userRole, canManage ? '표시' : '숨김');
+    } else {
+        // boardManager가 아직 초기화되지 않은 경우 잠시 후 재시도
+        console.log('boardManager 초기화 대기 중...');
+        setTimeout(() => {
+            updateUserManagementMenu(userRole);
+        }, 1000);
     }
 }
 
@@ -394,6 +405,20 @@ function showServiceNotice() {
         }, 10000);
     }
 }
+
+// 인증 상태 변화 감지
+auth.onAuthStateChanged(function(user) {
+    if (user) {
+        console.log('인증 상태 변화 - 로그인됨:', user.email);
+        window.currentUser = user;
+        updateUIForLoggedInUser(user);
+        checkUserProfile(user);
+    } else {
+        console.log('인증 상태 변화 - 로그아웃됨');
+        window.currentUser = null;
+        updateUIForLoggedOutUser();
+    }
+});
 
 // DOM 로드 완료 후 초기 상태 확인
 document.addEventListener('DOMContentLoaded', function() {

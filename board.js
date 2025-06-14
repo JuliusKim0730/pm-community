@@ -382,6 +382,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (window.boardManager) {
             await window.boardManager.initializeManager();
             console.log('BoardManager 초기화 성공');
+            
+            // BoardManager 초기화 완료 후 회원 관리 메뉴 업데이트
+            if (window.currentUser && typeof updateUserManagementMenu === 'function') {
+                updateUserManagementMenu(window.currentUser.role);
+            }
         } else {
             console.error('BoardManager 인스턴스가 없습니다.');
         }
@@ -1413,6 +1418,11 @@ async function saveUserProfile(user, isEditMode = false) {
         
         // UI 업데이트
         updateUIForLoggedInUser(user);
+        
+        // 회원 관리 메뉴 업데이트
+        if (typeof updateUserManagementMenu === 'function') {
+            updateUserManagementMenu(userData.role);
+        }
         
         closeProfileSetupModal();
         alert(isEditMode ? '프로필이 성공적으로 수정되었습니다!' : '프로필이 성공적으로 저장되었습니다!');
