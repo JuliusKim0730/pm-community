@@ -44,6 +44,13 @@ class HybridBoardManager {
         }
         
         try {
+            // 기존 사용자들의 등급 업데이트 (일회성)
+            try {
+                await this.updateExistingUsersRoles();
+            } catch (error) {
+                console.error('사용자 등급 업데이트 오류:', error);
+            }
+            
             await this.initSampleData();
             console.log('BoardManager Firebase 모드로 초기화 완료');
         } catch (error) {
@@ -354,7 +361,7 @@ class HybridBoardManager {
                 users.push({
                     id: doc.id,
                     ...data,
-                    role: data.role || this.userRoles.GENERAL // 기본값은 일반
+                    role: data.role || 'general' // 기본값은 일반
                 });
             });
             return users.sort((a, b) => {
@@ -367,6 +374,44 @@ class HybridBoardManager {
                 return roleOrder[a.role] - roleOrder[b.role];
             });
         }, '전체 사용자 조회');
+    }
+
+    // 기존 사용자들의 등급 업데이트 (일회성 실행)
+    async updateExistingUsersRoles() {
+        return this.executeWithRetry(async () => {
+            const snapshot = await db.collection('users').get();
+            const batch = db.batch();
+            let updateCount = 0;
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (!data.role) {
+                    // 등급이 없는 사용자들에게 기본 등급 추가
+                    let role = 'general';
+                    
+                    // 특정 이메일은 슈퍼바이저로 설정
+                    if (data.email === 'meangyun0729@gmail.com') {
+                        role = 'supervisor';
+                    }
+                    
+                    batch.update(doc.ref, { 
+                        role: role,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    updateCount++;
+                    console.log(`사용자 ${data.email}에게 ${role} 등급 추가`);
+                }
+            });
+
+            if (updateCount > 0) {
+                await batch.commit();
+                console.log(`${updateCount}명의 사용자 등급 업데이트 완료`);
+            } else {
+                console.log('업데이트할 사용자가 없습니다.');
+            }
+
+            return updateCount;
+        }, '기존 사용자 등급 업데이트');
     }
 }
 
@@ -1369,11 +1414,11 @@ async function saveUserProfile(user, isEditMode = false) {
     
     try {
         // 사용자 등급 결정
-        let userRole = boardManager.userRoles.GENERAL; // 기본값
+        let userRole = 'general'; // 기본값
         
         // 슈퍼바이저 이메일 확인
         if (user.email === 'meangyun0729@gmail.com') {
-            userRole = boardManager.userRoles.SUPERVISOR;
+            userRole = 'supervisor';
         }
         
         const userData = {
@@ -1748,10 +1793,10 @@ function canChangeUserRole(targetRole) {
 }
 
 async function changeUserRole(userId, newRole, currentRole) {
-    const currentUserRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+    const currentUserRole = window.currentUser?.role || 'general';
     
     // 권한 재확인
-    if (!boardManager.canChangeRole(currentUserRole, currentRole)) {
+    if (!window.boardManager?.canChangeRole(currentUserRole, currentRole)) {
         alert('이 회원의 등급을 변경할 권한이 없습니다.');
         // 원래 값으로 되돌리기
         const selectElement = event.target;
@@ -1761,8 +1806,8 @@ async function changeUserRole(userId, newRole, currentRole) {
     
     if (currentRole === newRole) return; // 변경사항 없음
     
-    const currentRoleName = boardManager.roleNames[currentRole] || '일반';
-    const newRoleName = boardManager.roleNames[newRole] || '일반';
+    const currentRoleName = window.boardManager?.roleNames[currentRole] || '일반';
+    const newRoleName = window.boardManager?.roleNames[newRole] || '일반';
     
     if (!confirm(`정말로 이 회원의 등급을 "${currentRoleName}"에서 "${newRoleName}"로 변경하시겠습니까?`)) {
         // 취소 시 원래 값으로 되돌리기
@@ -1772,7 +1817,7 @@ async function changeUserRole(userId, newRole, currentRole) {
     }
     
     try {
-        await boardManager.updateUserRole(userId, newRole);
+        await window.boardManager.updateUserRole(userId, newRole);
         alert(`회원 등급이 "${newRoleName}"로 변경되었습니다.`);
         
         // 목록 새로고침
@@ -1786,4 +1831,21 @@ async function changeUserRole(userId, newRole, currentRole) {
         const selectElement = event.target;
         selectElement.value = currentRole;
     }
-} 
+}
+
+// 개발자 도구에서 사용할 수 있는 전역 함수
+window.updateAllUserRoles = async function() {
+    if (!window.boardManager) {
+        console.error('BoardManager가 초기화되지 않았습니다.');
+        return;
+    }
+    
+    try {
+        const updateCount = await window.boardManager.updateExistingUsersRoles();
+        console.log(`사용자 등급 업데이트 완료: ${updateCount}명 업데이트됨`);
+        return updateCount;
+    } catch (error) {
+        console.error('사용자 등급 업데이트 실패:', error);
+        throw error;
+    }
+}; 
