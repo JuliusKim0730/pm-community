@@ -52,6 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
         element.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
         observer.observe(element);
     });
+
+    initDropdownMenus();
 });
 
 // 모바일 메뉴 반응형 처리
@@ -857,4 +859,42 @@ function createRealReviewItem(imagePath, index) {
     `;
     
     return item;
+}
+
+// 드롭다운 메뉴 초기화
+function initDropdownMenus() {
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 모바일에서 드롭다운 토글
+            if (window.innerWidth <= 768) {
+                const dropdown = this.closest('.nav-dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                if (menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                } else {
+                    // 다른 드롭다운 닫기
+                    document.querySelectorAll('.dropdown-menu').forEach(m => {
+                        m.style.display = 'none';
+                    });
+                    menu.style.display = 'block';
+                }
+            }
+        });
+    });
+    
+    // 드롭다운 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.nav-dropdown')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (window.innerWidth <= 768) {
+                    menu.style.display = 'none';
+                }
+            });
+        }
+    });
 } 
