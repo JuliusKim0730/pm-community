@@ -1071,13 +1071,45 @@ function initReviewSlider() {
 }
 
 // 프로필 설정 모달 관련 함수들
-function showProfileSetupModal(user) {
+function showProfileSetupModal(user, isEditMode = false) {
     const modal = document.getElementById('profile-setup-modal');
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
     
+    // 수정 모드인 경우 기존 정보로 폼 채우기
+    if (isEditMode && window.currentUser) {
+        document.getElementById('nickname').value = window.currentUser.nickname || '';
+        document.getElementById('job').value = window.currentUser.job || '';
+        document.getElementById('domain').value = window.currentUser.domain || '';
+        document.getElementById('region').value = window.currentUser.region || '';
+        updateNicknamePreview();
+        
+        // 모달 제목 변경
+        const modalTitle = modal.querySelector('.modal-header h2');
+        if (modalTitle) {
+            modalTitle.textContent = '프로필 수정';
+        }
+        
+        // 버튼 텍스트 변경
+        const submitBtn = modal.querySelector('.btn-submit');
+        if (submitBtn) {
+            submitBtn.textContent = '수정 완료';
+        }
+    } else {
+        // 신규 등록 모드
+        const modalTitle = modal.querySelector('.modal-header h2');
+        if (modalTitle) {
+            modalTitle.textContent = '프로필 설정';
+        }
+        
+        const submitBtn = modal.querySelector('.btn-submit');
+        if (submitBtn) {
+            submitBtn.textContent = '저장';
+        }
+    }
+    
     // 폼 이벤트 리스너 추가
-    setupProfileFormListeners(user);
+    setupProfileFormListeners(user || window.currentUser, isEditMode);
 }
 
 function closeProfileSetupModal() {
@@ -1090,9 +1122,15 @@ function closeProfileSetupModal() {
     updateNicknamePreview();
 }
 
-function setupProfileFormListeners(user) {
+function setupProfileFormListeners(user, isEditMode = false) {
     const form = document.getElementById('profile-setup-form');
     const inputs = form.querySelectorAll('input, select');
+    
+    // 기존 이벤트 리스너 제거
+    inputs.forEach(input => {
+        input.removeEventListener('change', updateNicknamePreview);
+        input.removeEventListener('input', updateNicknamePreview);
+    });
     
     // 실시간 닉네임 미리보기 업데이트
     inputs.forEach(input => {
@@ -1103,7 +1141,7 @@ function setupProfileFormListeners(user) {
     // 폼 제출 이벤트
     form.onsubmit = async (e) => {
         e.preventDefault();
-        await saveUserProfile(user);
+        await saveUserProfile(user, isEditMode);
     };
 }
 
@@ -1125,7 +1163,7 @@ function updateNicknamePreview() {
     }
 }
 
-async function saveUserProfile(user) {
+async function saveUserProfile(user, isEditMode = false) {
     const nickname = document.getElementById('nickname').value.trim();
     const job = document.getElementById('job').value;
     const domain = document.getElementById('domain').value;
@@ -1138,7 +1176,7 @@ async function saveUserProfile(user) {
     
     const submitBtn = document.querySelector('#profile-setup-form .btn-submit');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = '저장 중...';
+    submitBtn.textContent = isEditMode ? '수정 중...' : '저장 중...';
     submitBtn.disabled = true;
     
     try {
@@ -1148,11 +1186,16 @@ async function saveUserProfile(user) {
             domain: domain,
             region: region,
             email: user.email,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        await db.collection('users').doc(user.uid).set(userData);
+        // 신규 등록인 경우에만 createdAt 추가
+        if (!isEditMode) {
+            userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+        
+        // 수정 모드인 경우 merge: true 옵션 사용
+        await db.collection('users').doc(user.uid).set(userData, { merge: isEditMode });
         
         // 전역 사용자 정보 업데이트
         window.currentUser = {
@@ -1169,11 +1212,11 @@ async function saveUserProfile(user) {
         updateUIForLoggedInUser(user);
         
         closeProfileSetupModal();
-        alert('프로필이 성공적으로 저장되었습니다!');
+        alert(isEditMode ? '프로필이 성공적으로 수정되었습니다!' : '프로필이 성공적으로 저장되었습니다!');
         
     } catch (error) {
         console.error('프로필 저장 오류:', error);
-        alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        alert(isEditMode ? '프로필 수정 중 오류가 발생했습니다. 다시 시도해주세요.' : '프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;

@@ -53,16 +53,27 @@
                         <!-- 기존 단일 메뉴들 -->
                         <li><a href="#" onclick="showBoard('career-prep')">취업준비</a></li>
                         <li><a href="#" onclick="openKakaoChat()">카톡방</a></li>
+                        
+                        <!-- 로그인 버튼을 메뉴 리스트 안으로 이동 -->
+                        <li class="auth-section">
+                            <!-- 로그인 전 버튼 -->
+                            <button id="login-btn" class="auth-btn login-btn" onclick="signInWithGoogle()">
+                                <i class="fab fa-google"></i> 로그인
+                            </button>
+                            
+                            <!-- 로그인 후 사용자 드롭다운 -->
+                            <div id="user-dropdown" class="user-dropdown" style="display: none;">
+                                <button class="user-dropdown-toggle" onclick="toggleUserDropdown()">
+                                    <span id="user-nickname" class="user-nickname"></span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <ul class="user-dropdown-menu">
+                                    <li><a href="#" onclick="showEditProfileModal()"><i class="fas fa-edit"></i> 닉네임 수정하기</a></li>
+                                    <li><a href="#" onclick="signOut()"><i class="fas fa-sign-out-alt"></i> 로그아웃</a></li>
+                                </ul>
+                            </div>
+                        </li>
                     </ul>
-                    <div class="auth-section">
-                        <span id="user-info" class="user-info" style="display: none;"></span>
-                        <button id="login-btn" class="auth-btn login-btn" onclick="signInWithGoogle()">
-                            <i class="fab fa-google"></i> 로그인
-                        </button>
-                        <button id="logout-btn" class="auth-btn logout-btn" onclick="signOut()" style="display: none;">
-                            <i class="fas fa-sign-out-alt"></i> 로그아웃
-                        </button>
-                    </div>
                 </nav>
             </div>
         </div>
