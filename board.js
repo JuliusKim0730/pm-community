@@ -622,7 +622,7 @@ function showWriteModal() {
     }
     
     // 글쓰기 권한 체크
-    const userRole = window.currentUser.role || window.boardManager.userRoles.GENERAL;
+    const userRole = window.currentUser.role || 'general';
     if (!window.boardManager.canWritePost(userRole)) {
         alert('글 작성 권한이 없습니다. 핵심 회원 이상만 글을 작성할 수 있습니다.');
         return;
@@ -657,8 +657,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // boardManager 초기화 확인
+            if (!window.boardManager) {
+                alert('시스템이 초기화되지 않았습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+                return;
+            }
+            
             // 현재 게시판 ID 가져오기
-            const currentBoardId = getCurrentBoardId() || boardManager.currentBoard;
+            const currentBoardId = getCurrentBoardId() || window.boardManager.currentBoard;
             if (!currentBoardId) {
                 alert('게시판을 선택해주세요.');
                 return;
@@ -670,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = true;
             
             try {
-                await boardManager.addPost(currentBoardId, {
+                await window.boardManager.addPost(currentBoardId, {
                     title: title,
                     content: content,
                     source: source,
@@ -712,7 +718,7 @@ async function handleImageUpload(event) {
         return;
     }
     
-    if (boardManager.useFirebase) {
+    if (window.boardManager && window.boardManager.useFirebase) {
         try {
             // Firebase Storage에 이미지 업로드
             const storageRef = storage.ref();
@@ -762,7 +768,7 @@ async function showFullPost(postId, boardId) {
     try {
         let post;
         
-        if (boardManager.useFirebase) {
+        if (window.boardManager && window.boardManager.useFirebase) {
             const doc = await window.postsCollection.doc(postId).get();
             if (!doc.exists) {
                 alert('게시글을 찾을 수 없습니다.');
@@ -771,7 +777,7 @@ async function showFullPost(postId, boardId) {
             post = { id: doc.id, ...doc.data() };
         } else {
             // 로컬에서 게시글 찾기
-            const posts = boardManager.getLocalPosts(boardId);
+            const posts = window.boardManager ? window.boardManager.getLocalPosts(boardId) : [];
             post = posts.find(p => p.id == postId);
             if (!post) {
                 alert('게시글을 찾을 수 없습니다.');
@@ -803,7 +809,7 @@ async function showFullPost(postId, boardId) {
                     <div class="post-detail-info">
                         <span><i class="fas fa-user"></i> ${post.author}</span>
                         <span><i class="fas fa-calendar"></i> ${formatDate(date)}</span>
-                        <span><i class="fas fa-folder"></i> ${boardManager.getBoardName(boardId)}</span>
+                        <span><i class="fas fa-folder"></i> ${window.boardManager ? window.boardManager.getBoardName(boardId) : '게시판'}</span>
                     </div>
                 </div>
                 <div class="post-detail-content">
@@ -850,15 +856,15 @@ async function deletePost(postId, boardId) {
     }
     
     try {
-        if (boardManager.useFirebase) {
+        if (window.boardManager && window.boardManager.useFirebase) {
             await window.postsCollection.doc(postId).delete();
             console.log('Firebase에서 게시글 삭제 완료:', postId);
         }
         
         // 로컬에서도 삭제
-        if (boardManager.posts[boardId]) {
-            boardManager.posts[boardId] = boardManager.posts[boardId].filter(post => post.id !== postId);
-            boardManager.saveLocalPosts();
+        if (window.boardManager && window.boardManager.posts[boardId]) {
+            window.boardManager.posts[boardId] = window.boardManager.posts[boardId].filter(post => post.id !== postId);
+            window.boardManager.saveLocalPosts();
         }
         
         // 모달 닫기

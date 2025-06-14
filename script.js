@@ -295,7 +295,7 @@ document.addEventListener('keydown', function(e) {
     // Ctrl/Cmd + N: 새 글 작성
     if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
-        if (boardManager && boardManager.currentBoard) {
+        if (window.boardManager && window.boardManager.currentBoard) {
             showWriteModal();
         }
     }
