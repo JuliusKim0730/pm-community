@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 게시글 컬렉션 규칙
+    match /posts/{postId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 모든 사용자가 쓰기 가능 (추후 인증 추가 시 수정)
+      allow write: if true;
+    }
+    
+    // 추천도서 컬렉션 규칙
+    match /books/{bookId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 모든 사용자가 쓰기 가능 (추후 인증 추가 시 수정)
+      allow write: if true;
+    }
+    
+    // 컨설팅 후기 컬렉션 규칙
+    match /reviews/{reviewId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 모든 사용자가 쓰기 가능 (추후 인증 추가 시 수정)
+      allow write: if true;
+    }
+  }
+} 

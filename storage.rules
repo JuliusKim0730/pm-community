@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 이미지 업로드 규칙
+    match /images/{imageId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 모든 사용자가 업로드 가능 (파일 크기 제한: 5MB)
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // 책 커버 이미지 규칙
+    match /book-covers/{imageId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 모든 사용자가 업로드 가능 (파일 크기 제한: 2MB)
+      allow write: if request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // 컨설팅 후기 이미지 규칙
+    match /reviews/{imageId} {
+      // 모든 사용자가 읽기 가능
+      allow read: if true;
+      // 관리자만 업로드 가능 (추후 인증 추가 시 수정)
+      allow write: if true;
+    }
+  }
+} 
