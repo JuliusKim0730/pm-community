@@ -1735,8 +1735,15 @@ async function loadUsersList() {
     
     usersList.innerHTML = '<div class="loading">회원 목록을 불러오는 중...</div>';
     
+    // boardManager 초기화 확인
+    if (!window.boardManager) {
+        console.error('BoardManager가 초기화되지 않았습니다.');
+        usersList.innerHTML = '<div class="error">시스템 초기화 중입니다. 잠시 후 다시 시도해주세요.</div>';
+        return;
+    }
+    
     try {
-        const users = await boardManager.getAllUsers();
+        const users = await window.boardManager.getAllUsers();
         
         let html = '<div class="users-container">';
         
@@ -1749,7 +1756,7 @@ async function loadUsersList() {
             
             users.forEach(user => {
                 const roleClass = user.role || 'general';
-                const roleName = boardManager.roleNames[user.role] || '일반';
+                const roleName = window.boardManager.roleNames[user.role] || '일반';
                 const displayName = user.nickname ? 
                     `${user.nickname}/${user.job}/${user.domain}/${user.region}` : 
                     user.email;
@@ -1788,8 +1795,11 @@ async function loadUsersList() {
 }
 
 function canChangeUserRole(targetRole) {
-    const currentUserRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
-    return boardManager.canChangeRole(currentUserRole, targetRole);
+    const currentUserRole = window.currentUser?.role || 'general';
+    if (!window.boardManager) {
+        return false;
+    }
+    return window.boardManager.canChangeRole(currentUserRole, targetRole);
 }
 
 async function changeUserRole(userId, newRole, currentRole) {

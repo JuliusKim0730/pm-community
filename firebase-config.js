@@ -145,16 +145,25 @@ async function signInWithGoogle() {
             result = await auth.signInWithPopup(provider);
             console.log('팝업 로그인 성공:', result.user.email);
         } catch (popupError) {
-            console.log('팝업 로그인 실패:', popupError.code);
+            console.log('팝업 로그인 실패:', popupError.code, popupError.message);
             
+            // 팝업 관련 에러들을 모두 리다이렉트로 처리
             if (popupError.code === 'auth/popup-blocked' || 
                 popupError.code === 'auth/popup-closed-by-user' ||
-                popupError.message.includes('Cross-Origin-Opener-Policy')) {
+                popupError.code === 'auth/cancelled-popup-request' ||
+                popupError.message.includes('Cross-Origin-Opener-Policy') ||
+                popupError.message.includes('window.closed') ||
+                popupError.message.includes('popup')) {
                 
                 console.log('리다이렉트 방식으로 전환');
-                // 리다이렉트 방식으로 전환
-                await auth.signInWithRedirect(provider);
-                return; // 리다이렉트 후에는 페이지가 새로고침됨
+                try {
+                    // 리다이렉트 방식으로 전환
+                    await auth.signInWithRedirect(provider);
+                    return; // 리다이렉트 후에는 페이지가 새로고침됨
+                } catch (redirectError) {
+                    console.error('리다이렉트 로그인도 실패:', redirectError);
+                    throw redirectError;
+                }
             } else {
                 throw popupError;
             }
@@ -334,9 +343,13 @@ function updateUserManagementMenu(userRole) {
         const canManage = userRole === 'supervisor' || userRole === 'admin';
         userManagementMenu.style.display = canManage ? 'block' : 'none';
         console.log('회원 관리 메뉴 업데이트:', userRole, canManage ? '표시' : '숨김');
-    } else {
-        // boardManager가 아직 초기화되지 않은 경우 잠시 후 재시도
-        console.log('boardManager 초기화 대기 중...');
+            } else {
+            // boardManager가 아직 초기화되지 않은 경우 잠시 후 재시도
+            console.log('boardManager 초기화 대기 중...');
+            setTimeout(() => {
+                updateUserManagementMenu(userRole);
+            }, 1000);
+        }
         setTimeout(() => {
             updateUserManagementMenu(userRole);
         }, 1000);
