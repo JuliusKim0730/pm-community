@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="./styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
     <!-- 헤더 -->
@@ -29,6 +35,15 @@
                         <li><a href="#" onclick="showCategory('books')">추천도서</a></li>
                         <li><a href="#" onclick="openKakaoChat()">카톡방</a></li>
                     </ul>
+                    <div class="auth-section">
+                        <span id="user-info" class="user-info" style="display: none;"></span>
+                        <button id="login-btn" class="auth-btn login-btn" onclick="signInWithGoogle()">
+                            <i class="fab fa-google"></i> 로그인
+                        </button>
+                        <button id="logout-btn" class="auth-btn logout-btn" onclick="signOut()" style="display: none;">
+                            <i class="fas fa-sign-out-alt"></i> 로그아웃
+                        </button>
+                    </div>
                 </nav>
             </div>
         </div>
@@ -194,6 +209,88 @@
                 </a>
             </div>
             <p class="kakao-note">* 건전한 토론 문화를 위해 예의를 지켜주세요</p>
+        </div>
+    </div>
+
+    <!-- 프로필 설정 모달 -->
+    <div id="profile-setup-modal" class="modal">
+        <div class="modal-content profile-setup-content">
+            <div class="modal-header">
+                <h2>👋 환영합니다! 프로필을 설정해주세요</h2>
+            </div>
+            <form id="profile-setup-form" class="profile-setup-form">
+                <div class="form-group">
+                    <label for="nickname">닉네임 *</label>
+                    <input type="text" id="nickname" name="nickname" required placeholder="예: 김PM">
+                </div>
+                
+                <div class="form-group">
+                    <label for="job">직무 *</label>
+                    <select id="job" name="job" required>
+                        <option value="">직무를 선택하세요</option>
+                        <option value="PM">PM (Product Manager)</option>
+                        <option value="PO">PO (Product Owner)</option>
+                        <option value="서비스기획">서비스기획</option>
+                        <option value="UX기획">UX기획</option>
+                        <option value="사업기획">사업기획</option>
+                        <option value="전략기획">전략기획</option>
+                        <option value="취업준비생">취업준비생</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="domain">도메인(산업군) *</label>
+                    <select id="domain" name="domain" required>
+                        <option value="">도메인을 선택하세요</option>
+                        <option value="IT/테크">IT/테크</option>
+                        <option value="핀테크">핀테크</option>
+                        <option value="이커머스">이커머스</option>
+                        <option value="게임">게임</option>
+                        <option value="교육">교육</option>
+                        <option value="헬스케어">헬스케어</option>
+                        <option value="미디어">미디어</option>
+                        <option value="금융">금융</option>
+                        <option value="제조">제조</option>
+                        <option value="유통">유통</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="region">지역 *</label>
+                    <select id="region" name="region" required>
+                        <option value="">지역을 선택하세요</option>
+                        <option value="서울">서울</option>
+                        <option value="경기">경기</option>
+                        <option value="인천">인천</option>
+                        <option value="부산">부산</option>
+                        <option value="대구">대구</option>
+                        <option value="대전">대전</option>
+                        <option value="광주">광주</option>
+                        <option value="울산">울산</option>
+                        <option value="세종">세종</option>
+                        <option value="강원">강원</option>
+                        <option value="충북">충북</option>
+                        <option value="충남">충남</option>
+                        <option value="전북">전북</option>
+                        <option value="전남">전남</option>
+                        <option value="경북">경북</option>
+                        <option value="경남">경남</option>
+                        <option value="제주">제주</option>
+                        <option value="해외">해외</option>
+                    </select>
+                </div>
+                
+                <div class="nickname-preview" id="nickname-preview">
+                    <h4>🎯 완성된 닉네임</h4>
+                    <div class="preview-text" id="preview-text">정보를 입력하면 닉네임이 표시됩니다</div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">프로필 저장</button>
+                </div>
+            </form>
         </div>
     </div>
 

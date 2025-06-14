@@ -478,6 +478,13 @@ async function updateRecentPosts() {
 
 // 글쓰기 모달 관련 함수들
 function showWriteModal() {
+    // 로그인 체크
+    if (!window.currentUser) {
+        alert('글을 작성하려면 로그인이 필요합니다.');
+        signInWithGoogle();
+        return;
+    }
+    
     document.getElementById('write-modal').style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
@@ -517,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: title,
                     content: content,
                     source: source,
-                    author: '익명' // 추후 로그인 기능 추가 시 실제 사용자명으로 변경
+                    author: updatePostAuthor()
                 });
                 
                 closeWriteModal();
@@ -910,4 +917,122 @@ function formatBookText(command) {
 function loadConsultingReviews() {
     // 추후 Firebase에서 컨설팅 후기 이미지들을 로드하는 기능 구현
     console.log('컨설팅 후기 로드');
+}
+
+// 프로필 설정 모달 관련 함수들
+function showProfileSetupModal(user) {
+    const modal = document.getElementById('profile-setup-modal');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // 폼 이벤트 리스너 추가
+    setupProfileFormListeners(user);
+}
+
+function closeProfileSetupModal() {
+    const modal = document.getElementById('profile-setup-modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // 폼 초기화
+    document.getElementById('profile-setup-form').reset();
+    updateNicknamePreview();
+}
+
+function setupProfileFormListeners(user) {
+    const form = document.getElementById('profile-setup-form');
+    const inputs = form.querySelectorAll('input, select');
+    
+    // 실시간 닉네임 미리보기 업데이트
+    inputs.forEach(input => {
+        input.addEventListener('change', updateNicknamePreview);
+        input.addEventListener('input', updateNicknamePreview);
+    });
+    
+    // 폼 제출 이벤트
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await saveUserProfile(user);
+    };
+}
+
+function updateNicknamePreview() {
+    const nickname = document.getElementById('nickname').value.trim();
+    const job = document.getElementById('job').value;
+    const domain = document.getElementById('domain').value;
+    const region = document.getElementById('region').value;
+    
+    const previewText = document.getElementById('preview-text');
+    
+    if (nickname && job && domain && region) {
+        const fullNickname = `${nickname}/${job}/${domain}/${region}`;
+        previewText.textContent = fullNickname;
+        previewText.classList.remove('empty');
+    } else {
+        previewText.textContent = '정보를 입력하면 닉네임이 표시됩니다';
+        previewText.classList.add('empty');
+    }
+}
+
+async function saveUserProfile(user) {
+    const nickname = document.getElementById('nickname').value.trim();
+    const job = document.getElementById('job').value;
+    const domain = document.getElementById('domain').value;
+    const region = document.getElementById('region').value;
+    
+    if (!nickname || !job || !domain || !region) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#profile-setup-form .btn-submit');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = '저장 중...';
+    submitBtn.disabled = true;
+    
+    try {
+        const userData = {
+            nickname: nickname,
+            job: job,
+            domain: domain,
+            region: region,
+            email: user.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('users').doc(user.uid).set(userData);
+        
+        // 전역 사용자 정보 업데이트
+        window.currentUser = {
+            uid: user.uid,
+            email: user.email,
+            nickname: nickname,
+            job: job,
+            domain: domain,
+            region: region,
+            displayName: `${nickname}/${job}/${domain}/${region}`
+        };
+        
+        // UI 업데이트
+        updateUIForLoggedInUser(user);
+        
+        closeProfileSetupModal();
+        alert('프로필이 성공적으로 저장되었습니다!');
+        
+    } catch (error) {
+        console.error('프로필 저장 오류:', error);
+        alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// 글 작성 시 작성자 이름 업데이트
+function updatePostAuthor() {
+    if (window.currentUser) {
+        return window.currentUser.displayName;
+    }
+    return '익명';
 } 
