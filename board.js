@@ -4,6 +4,7 @@ class HybridBoardManager {
         this.currentBoard = '';
         this.useFirebase = false;
         this.posts = {};
+        this.initialized = false;
         this.boardNames = {
             'job-info': '직무',
             'career-prep': '취업준비',
@@ -17,6 +18,10 @@ class HybridBoardManager {
 
     // 매니저 초기화
     async initializeManager() {
+        if (this.initialized) {
+            return; // 이미 초기화됨
+        }
+        
         // Firebase 사용 가능 여부 확인
         try {
             if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
@@ -32,6 +37,8 @@ class HybridBoardManager {
         }
         
         await this.initSampleData();
+        this.initialized = true;
+        console.log('BoardManager 초기화 완료');
     }
 
     // 로컬 스토리지에서 게시글 불러오기
@@ -388,11 +395,17 @@ class HybridBoardManager {
 const boardManager = new HybridBoardManager();
 
 // 페이지 전환 함수들
-function showHomePage() {
+async function showHomePage() {
     document.getElementById('home-page').style.display = 'block';
     document.getElementById('board-page').style.display = 'none';
     document.getElementById('books-page').style.display = 'none';
     document.getElementById('consulting-page').style.display = 'none';
+    
+    // boardManager 초기화 완료 대기
+    if (boardManager && typeof boardManager.initializeManager === 'function') {
+        await boardManager.initializeManager();
+    }
+    
     updateRecentPosts();
 }
 
@@ -767,9 +780,9 @@ function formatDate(date) {
 }
 
 // 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // 홈페이지 표시
-    showHomePage();
+    await showHomePage();
     
     // 모달 외부 클릭 시 닫기 이벤트
     window.addEventListener('click', function(event) {
