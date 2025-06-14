@@ -2727,3 +2727,262 @@ body {
         font-size: 1rem;
     }
 } 
+
+/* 회원 관리 페이지 스타일 */
+.user-management-container {
+    padding: 2rem 0;
+}
+
+.user-management-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #333;
+}
+
+.user-management-title {
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.users-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+}
+
+.users-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #444;
+}
+
+.users-header h3 {
+    color: #ffffff;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    border-left: 4px solid #666;
+    transition: all 0.3s ease;
+}
+
+.user-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(5px);
+}
+
+.user-item.supervisor {
+    border-left-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.user-item.admin {
+    border-left-color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.1);
+}
+
+.user-item.core {
+    border-left-color: #45b7d1;
+    background: rgba(69, 183, 209, 0.1);
+}
+
+.user-item.general {
+    border-left-color: #95a5a6;
+    background: rgba(149, 165, 166, 0.1);
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-name {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.user-email {
+    color: #b0b0b0;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.user-role {
+    display: flex;
+    align-items: center;
+}
+
+.role-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-supervisor {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: #ffffff;
+}
+
+.role-admin {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: #ffffff;
+}
+
+.role-core {
+    background: linear-gradient(135deg, #45b7d1, #3498db);
+    color: #ffffff;
+}
+
+.role-general {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: #ffffff;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.role-select:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+.role-select option {
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+.role-fixed {
+    color: #b0b0b0;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #888;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+/* 게시글 삭제 버튼 스타일 */
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-delete-post {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-delete-post:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-delete-post i {
+    font-size: 0.8rem;
+}
+
+/* 반응형 - 회원 관리 */
+@media (max-width: 768px) {
+    .user-management-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .user-management-title {
+        font-size: 1.6rem;
+    }
+    
+    .user-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .user-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .role-select {
+        width: 120px;
+    }
+    
+    .modal-header-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .users-container {
+        padding: 1rem;
+    }
+    
+    .user-item {
+        padding: 0.8rem;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+    }
+    
+    .btn-delete-post {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+} 

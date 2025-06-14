@@ -276,12 +276,37 @@ async function updateUserNickname(user) {
             const userDoc = await window.usersCollection.doc(user.uid).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
-                userNickname.textContent = userData.nickname || user.displayName || user.email.split('@')[0];
+                const displayName = userData.nickname || user.displayName || user.email.split('@')[0];
+                userNickname.textContent = displayName;
+                
+                // 전역 사용자 정보 업데이트 (등급 포함)
+                window.currentUser = {
+                    ...user,
+                    ...userData,
+                    displayName: userData.nickname ? 
+                        `${userData.nickname}/${userData.job}/${userData.domain}/${userData.region}` : 
+                        displayName
+                };
+                
+                // 회원 관리 메뉴 표시 여부 결정
+                updateUserManagementMenu(userData.role);
+                
             } else {
                 userNickname.textContent = user.displayName || user.email.split('@')[0];
+                // 기본 등급 설정
+                window.currentUser = {
+                    ...user,
+                    role: 'general',
+                    displayName: user.displayName || user.email.split('@')[0]
+                };
             }
         } else {
             userNickname.textContent = user.displayName || user.email.split('@')[0];
+            window.currentUser = {
+                ...user,
+                role: 'general',
+                displayName: user.displayName || user.email.split('@')[0]
+            };
         }
     } catch (error) {
         console.error('닉네임 업데이트 오류:', error);
@@ -289,6 +314,20 @@ async function updateUserNickname(user) {
         if (userNickname) {
             userNickname.textContent = user.displayName || user.email.split('@')[0];
         }
+        window.currentUser = {
+            ...user,
+            role: 'general',
+            displayName: user.displayName || user.email.split('@')[0]
+        };
+    }
+}
+
+// 회원 관리 메뉴 표시 업데이트
+function updateUserManagementMenu(userRole) {
+    const userManagementMenu = document.getElementById('user-management-menu');
+    if (userManagementMenu && window.boardManager) {
+        const canManage = window.boardManager.canManageUsers(userRole || 'general');
+        userManagementMenu.style.display = canManage ? 'block' : 'none';
     }
 }
 

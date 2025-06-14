@@ -76,6 +76,7 @@
                                 </button>
                                 <ul class="user-dropdown-menu">
                                     <li><a href="#" onclick="showEditProfileModal()"><i class="fas fa-edit"></i> 닉네임 수정하기</a></li>
+                                    <li id="user-management-menu" style="display: none;"><a href="#" onclick="showUserManagementPage()"><i class="fas fa-users-cog"></i> 회원 관리</a></li>
                                     <li><a href="#" onclick="signOut()"><i class="fas fa-sign-out-alt"></i> 로그아웃</a></li>
                                 </ul>
                             </div>
@@ -484,6 +485,25 @@
                         <i class="fas fa-external-link-alt"></i>
                         PM/PO 도서 목록 (Notion)
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원 관리 페이지 -->
+    <div id="user-management-page" class="page-content" style="display: none;">
+        <div class="container">
+            <div class="user-management-container">
+                <div class="user-management-header">
+                    <button class="back-btn" onclick="showHomePage()">
+                        <i class="fas fa-arrow-left"></i> 홈으로
+                    </button>
+                    <h1 class="user-management-title">회원 관리</h1>
+                </div>
+
+                <!-- 회원 목록 -->
+                <div class="users-list" id="users-list">
+                    <!-- JavaScript로 동적 생성 -->
                 </div>
             </div>
         </div>

@@ -288,6 +288,86 @@ class HybridBoardManager {
         'policy-library': '정책도서관',
         'study': '스터디'
     };
+
+    // 사용자 등급 관리
+    userRoles = {
+        SUPERVISOR: 'supervisor',
+        ADMIN: 'admin', 
+        CORE: 'core',
+        GENERAL: 'general'
+    };
+
+    roleNames = {
+        'supervisor': '슈퍼바이저',
+        'admin': '운영진',
+        'core': '핵심',
+        'general': '일반'
+    };
+
+    // 등급별 권한 확인
+    canWritePost(userRole) {
+        return userRole === this.userRoles.SUPERVISOR || 
+               userRole === this.userRoles.ADMIN || 
+               userRole === this.userRoles.CORE;
+    }
+
+    canDeletePost(userRole) {
+        return userRole === this.userRoles.SUPERVISOR || 
+               userRole === this.userRoles.ADMIN;
+    }
+
+    canManageUsers(userRole) {
+        return userRole === this.userRoles.SUPERVISOR || 
+               userRole === this.userRoles.ADMIN;
+    }
+
+    canChangeRole(currentUserRole, targetUserRole) {
+        // 슈퍼바이저는 모든 등급 변경 가능
+        if (currentUserRole === this.userRoles.SUPERVISOR) {
+            return true;
+        }
+        // 운영진은 슈퍼바이저 등급 변경 불가
+        if (currentUserRole === this.userRoles.ADMIN) {
+            return targetUserRole !== this.userRoles.SUPERVISOR;
+        }
+        return false;
+    }
+
+    // 사용자 등급 업데이트
+    async updateUserRole(userId, newRole) {
+        return this.executeWithRetry(async () => {
+            await db.collection('users').doc(userId).update({
+                role: newRole,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`사용자 ${userId}의 등급이 ${newRole}로 변경되었습니다.`);
+        }, '사용자 등급 업데이트');
+    }
+
+    // 모든 사용자 조회 (관리자용)
+    async getAllUsers() {
+        return this.executeWithRetry(async () => {
+            const snapshot = await db.collection('users').get();
+            const users = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                users.push({
+                    id: doc.id,
+                    ...data,
+                    role: data.role || this.userRoles.GENERAL // 기본값은 일반
+                });
+            });
+            return users.sort((a, b) => {
+                const roleOrder = {
+                    'supervisor': 0,
+                    'admin': 1,
+                    'core': 2,
+                    'general': 3
+                };
+                return roleOrder[a.role] - roleOrder[b.role];
+            });
+        }, '전체 사용자 조회');
+    }
 }
 
 // 전역 게시판 매니저 인스턴스 - 즉시 생성
@@ -485,6 +565,13 @@ function showWriteModal() {
         return;
     }
     
+    // 글쓰기 권한 체크
+    const userRole = window.currentUser.role || boardManager.userRoles.GENERAL;
+    if (!boardManager.canWritePost(userRole)) {
+        alert('글 작성 권한이 없습니다. 핵심 회원 이상만 글을 작성할 수 있습니다.');
+        return;
+    }
+    
     document.getElementById('write-modal').style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
@@ -638,6 +725,10 @@ async function showFullPost(postId, boardId) {
         
         const date = post.createdAt ? post.createdAt.toDate() : (post.date || new Date());
         
+        // 삭제 버튼 표시 여부 확인
+        const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+        const canDelete = boardManager.canDeletePost(userRole);
+        
         // 모달 생성 및 표시
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -645,7 +736,12 @@ async function showFullPost(postId, boardId) {
             <div class="modal-content post-detail-modal">
                 <div class="modal-header">
                     <h2>${post.title}</h2>
-                    <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    <div class="modal-header-actions">
+                        ${canDelete ? `<button class="btn-delete-post" onclick="deletePost('${postId}', '${boardId}')">
+                            <i class="fas fa-trash"></i> 삭제
+                        </button>` : ''}
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
                 </div>
                 <div class="post-detail-meta">
                     <div class="post-detail-info">
@@ -681,6 +777,48 @@ async function showFullPost(postId, boardId) {
     } catch (error) {
         console.error('게시글 조회 오류:', error);
         alert('게시글을 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+// 게시글 삭제 함수
+async function deletePost(postId, boardId) {
+    // 권한 재확인
+    const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+    if (!boardManager.canDeletePost(userRole)) {
+        alert('게시글 삭제 권한이 없습니다.');
+        return;
+    }
+    
+    if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    try {
+        if (boardManager.useFirebase) {
+            await window.postsCollection.doc(postId).delete();
+            console.log('Firebase에서 게시글 삭제 완료:', postId);
+        }
+        
+        // 로컬에서도 삭제
+        if (boardManager.posts[boardId]) {
+            boardManager.posts[boardId] = boardManager.posts[boardId].filter(post => post.id !== postId);
+            boardManager.saveLocalPosts();
+        }
+        
+        // 모달 닫기
+        const modal = document.querySelector('.modal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 게시글 목록 새로고침
+        updatePostsList(boardId);
+        alert('게시글이 삭제되었습니다.');
+        
+    } catch (error) {
+        console.error('게시글 삭제 오류:', error);
+        alert('게시글 삭제 중 오류가 발생했습니다.');
     }
 }
 
@@ -1219,18 +1357,43 @@ async function saveUserProfile(user, isEditMode = false) {
     submitBtn.disabled = true;
     
     try {
+        // 사용자 등급 결정
+        let userRole = boardManager.userRoles.GENERAL; // 기본값
+        
+        // 슈퍼바이저 이메일 확인
+        if (user.email === 'meangyun0729@gmail.com') {
+            userRole = boardManager.userRoles.SUPERVISOR;
+        }
+        
         const userData = {
             nickname: nickname,
             job: job,
             domain: domain,
             region: region,
             email: user.email,
+            role: userRole,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         
         // 신규 등록인 경우에만 createdAt 추가
         if (!isEditMode) {
             userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+        
+        // 기존 사용자 정보 조회 (등급 유지를 위해)
+        if (isEditMode) {
+            try {
+                const existingDoc = await db.collection('users').doc(user.uid).get();
+                if (existingDoc.exists) {
+                    const existingData = existingDoc.data();
+                    // 기존 등급이 있으면 유지 (슈퍼바이저 이메일이 아닌 경우)
+                    if (user.email !== 'meangyun0729@gmail.com' && existingData.role) {
+                        userData.role = existingData.role;
+                    }
+                }
+            } catch (error) {
+                console.log('기존 사용자 정보 조회 실패, 기본값 사용');
+            }
         }
         
         // 수정 모드인 경우 merge: true 옵션 사용
@@ -1244,6 +1407,7 @@ async function saveUserProfile(user, isEditMode = false) {
             job: job,
             domain: domain,
             region: region,
+            role: userData.role,
             displayName: `${nickname}/${job}/${domain}/${region}`
         };
         
@@ -1482,4 +1646,128 @@ function getCurrentBoardId() {
         }
     }
     return null;
+}
+
+// 회원 관리 페이지 함수들
+function showUserManagementPage() {
+    // 권한 확인
+    const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+    if (!boardManager.canManageUsers(userRole)) {
+        alert('회원 관리 권한이 없습니다.');
+        return;
+    }
+    
+    // 페이지 전환
+    document.getElementById('home-page').style.display = 'none';
+    document.getElementById('board-page').style.display = 'none';
+    document.getElementById('books-page').style.display = 'none';
+    document.getElementById('consulting-page').style.display = 'none';
+    document.getElementById('user-management-page').style.display = 'block';
+    
+    // 사용자 목록 로드
+    loadUsersList();
+}
+
+async function loadUsersList() {
+    const usersList = document.getElementById('users-list');
+    if (!usersList) return;
+    
+    usersList.innerHTML = '<div class="loading">회원 목록을 불러오는 중...</div>';
+    
+    try {
+        const users = await boardManager.getAllUsers();
+        
+        let html = '<div class="users-container">';
+        
+        if (users.length === 0) {
+            html += '<div class="empty-state">등록된 회원이 없습니다.</div>';
+        } else {
+            html += '<div class="users-header">';
+            html += '<h3>전체 회원 목록 (' + users.length + '명)</h3>';
+            html += '</div>';
+            
+            users.forEach(user => {
+                const roleClass = user.role || 'general';
+                const roleName = boardManager.roleNames[user.role] || '일반';
+                const displayName = user.nickname ? 
+                    `${user.nickname}/${user.job}/${user.domain}/${user.region}` : 
+                    user.email;
+                
+                html += `
+                    <div class="user-item ${roleClass}">
+                        <div class="user-info">
+                            <div class="user-name">${displayName}</div>
+                            <div class="user-email">${user.email}</div>
+                            <div class="user-role">
+                                <span class="role-badge role-${roleClass}">${roleName}</span>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            ${canChangeUserRole(user.role) ? `
+                                <select class="role-select" onchange="changeUserRole('${user.id}', this.value, '${user.role}')">
+                                    <option value="general" ${user.role === 'general' ? 'selected' : ''}>일반</option>
+                                    <option value="core" ${user.role === 'core' ? 'selected' : ''}>핵심</option>
+                                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>운영진</option>
+                                    ${window.currentUser?.role === 'supervisor' ? `<option value="supervisor" ${user.role === 'supervisor' ? 'selected' : ''}>슈퍼바이저</option>` : ''}
+                                </select>
+                            ` : `<span class="role-fixed">${roleName}</span>`}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += '</div>';
+        usersList.innerHTML = html;
+        
+    } catch (error) {
+        console.error('회원 목록 로드 오류:', error);
+        usersList.innerHTML = '<div class="error">회원 목록을 불러오는 중 오류가 발생했습니다.</div>';
+    }
+}
+
+function canChangeUserRole(targetRole) {
+    const currentUserRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+    return boardManager.canChangeRole(currentUserRole, targetRole);
+}
+
+async function changeUserRole(userId, newRole, currentRole) {
+    const currentUserRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
+    
+    // 권한 재확인
+    if (!boardManager.canChangeRole(currentUserRole, currentRole)) {
+        alert('이 회원의 등급을 변경할 권한이 없습니다.');
+        // 원래 값으로 되돌리기
+        const selectElement = event.target;
+        selectElement.value = currentRole;
+        return;
+    }
+    
+    if (currentRole === newRole) return; // 변경사항 없음
+    
+    const currentRoleName = boardManager.roleNames[currentRole] || '일반';
+    const newRoleName = boardManager.roleNames[newRole] || '일반';
+    
+    if (!confirm(`정말로 이 회원의 등급을 "${currentRoleName}"에서 "${newRoleName}"로 변경하시겠습니까?`)) {
+        // 취소 시 원래 값으로 되돌리기
+        const selectElement = event.target;
+        selectElement.value = currentRole;
+        return;
+    }
+    
+    try {
+        await boardManager.updateUserRole(userId, newRole);
+        alert(`회원 등급이 "${newRoleName}"로 변경되었습니다.`);
+        
+        // 목록 새로고침
+        loadUsersList();
+        
+    } catch (error) {
+        console.error('등급 변경 오류:', error);
+        alert('등급 변경 중 오류가 발생했습니다.');
+        
+        // 오류 시 원래 값으로 되돌리기
+        const selectElement = event.target;
+        selectElement.value = currentRole;
+    }
 } 
