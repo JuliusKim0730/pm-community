@@ -913,10 +913,161 @@ function formatBookText(command) {
     document.getElementById('bookContentEditor').focus();
 }
 
-// 컨설팅 후기 로드 (추후 구현)
+// 컨설팅 후기 이미지 관리
+const consultingReviews = [
+    // 샘플 이미지들 - 실제 이미지 파일을 reviews/consulting/ 폴더에 추가하세요
+    {
+        src: './reviews/consulting/review1.jpg',
+        caption: '이력서 컨설팅 후기 - "정말 도움이 많이 되었습니다!"'
+    },
+    {
+        src: './reviews/consulting/review2.jpg',
+        caption: '포트폴리오 컨설팅 후기 - "체계적인 피드백 감사합니다"'
+    },
+    {
+        src: './reviews/consulting/review3.jpg',
+        caption: '커리어 컨설팅 후기 - "명확한 방향을 잡을 수 있었어요"'
+    },
+    {
+        src: './reviews/consulting/review4.jpg',
+        caption: '자기소개서 컨설팅 후기 - "합격할 수 있었습니다!"'
+    }
+];
+
+// 컨설팅 후기 로드
 function loadConsultingReviews() {
-    // 추후 Firebase에서 컨설팅 후기 이미지들을 로드하는 기능 구현
-    console.log('컨설팅 후기 로드');
+    const reviewsGallery = document.getElementById('reviewsGallery');
+    const reviewsPlaceholder = document.getElementById('reviewsPlaceholder');
+    
+    if (!reviewsGallery) return;
+    
+    // 기존 내용 초기화
+    reviewsGallery.innerHTML = '';
+    
+    if (consultingReviews.length === 0) {
+        reviewsPlaceholder.style.display = 'block';
+        return;
+    }
+    
+    reviewsPlaceholder.style.display = 'none';
+    
+    consultingReviews.forEach((review, index) => {
+        const reviewItem = document.createElement('div');
+        reviewItem.className = 'review-item';
+        reviewItem.innerHTML = `
+            <img src="${review.src}" alt="컨설팅 후기 ${index + 1}" 
+                 onclick="openImageModal('${review.src}', '${review.caption}')"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="review-placeholder" style="display: none;">
+                <i class="fas fa-image"></i>
+                <p>이미지 준비 중</p>
+            </div>
+            <div class="review-caption">${review.caption}</div>
+        `;
+        reviewsGallery.appendChild(reviewItem);
+    });
+    
+    // 슬라이더 기능 초기화
+    initReviewSlider();
+}
+
+// 이미지 모달 열기
+function openImageModal(src, caption) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const modalCaption = document.getElementById('modalCaption');
+    
+    if (!modal) {
+        // 이미지 모달이 없으면 생성
+        createImageModal();
+        return openImageModal(src, caption);
+    }
+    
+    modal.style.display = 'block';
+    modalImg.src = src;
+    modalCaption.textContent = caption;
+    document.body.style.overflow = 'hidden';
+}
+
+// 이미지 모달 닫기
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// 이미지 모달 생성
+function createImageModal() {
+    const modalHTML = `
+        <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+            <div class="image-modal-content">
+                <span class="close" onclick="closeImageModal()">&times;</span>
+                <img id="modalImage" src="" alt="후기 이미지">
+                <div id="modalCaption" class="image-caption"></div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// 후기 슬라이더 초기화
+function initReviewSlider() {
+    const reviewsGallery = document.getElementById('reviewsGallery');
+    if (!reviewsGallery) return;
+    
+    let currentSlide = 0;
+    const reviewItems = reviewsGallery.querySelectorAll('.review-item');
+    
+    if (reviewItems.length <= 1) return;
+    
+    // 슬라이더 컨트롤 추가
+    const sliderControls = document.createElement('div');
+    sliderControls.className = 'slider-controls';
+    sliderControls.innerHTML = `
+        <button class="slider-btn prev-btn" onclick="changeSlide(-1)">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="slider-dots">
+            ${Array.from({length: reviewItems.length}, (_, i) => 
+                `<span class="dot ${i === 0 ? 'active' : ''}" onclick="currentSlide = ${i}; updateSlider()"></span>`
+            ).join('')}
+        </div>
+        <button class="slider-btn next-btn" onclick="changeSlide(1)">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+    
+    reviewsGallery.parentNode.insertBefore(sliderControls, reviewsGallery.nextSibling);
+    
+    // 전역 함수로 등록
+    window.changeSlide = function(direction) {
+        currentSlide += direction;
+        if (currentSlide >= reviewItems.length) currentSlide = 0;
+        if (currentSlide < 0) currentSlide = reviewItems.length - 1;
+        updateSlider();
+    };
+    
+    window.updateSlider = function() {
+        const dots = document.querySelectorAll('.slider-dots .dot');
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentSlide);
+        });
+        
+        // 모바일에서는 슬라이드 효과, 데스크톱에서는 그리드 유지
+        if (window.innerWidth <= 768) {
+            reviewsGallery.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+    };
+    
+    // 자동 슬라이드 (5초마다)
+    setInterval(() => {
+        if (window.innerWidth <= 768) {
+            changeSlide(1);
+        }
+    }, 5000);
 }
 
 // 프로필 설정 모달 관련 함수들
