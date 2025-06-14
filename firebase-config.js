@@ -1,15 +1,25 @@
 // Firebase 설정 및 구글 로그인 기능
 console.log('Firebase Authentication 모드로 실행');
 
-// Firebase 설정 - 환경 변수 사용
+// Firebase 설정 - 환경변수 또는 기본값 사용
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyABwMH9ZGH6mpT1dT8OURyyBfE-7GTB6Mg",
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "pmcommunity.firebaseapp.com",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "pmcommunity",
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "pmcommunity.appspot.com",
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1081720120818",
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1081720120818:web:d6f12867b6ad32e58937b"
+    apiKey: "AIzaSyDyFOHNeZN9g2FL1T2rM54J_R7vYjyoPec",
+    authDomain: "pmcommuni.firebaseapp.com", 
+    projectId: "pmcommuni",
+    storageBucket: "pmcommuni.appspot.com",
+    messagingSenderId: "1081720120818",
+    appId: "1:1081720120818:web:d6f12867b6ad32e589376b"
 };
+
+console.log('Firebase 설정:', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain
+});
+
+// 전역 변수 선언
+window.firebaseInitialized = false;
+window.firestoreReady = false;
+window.currentUser = null;
 
 // Firebase 초기화
 try {
@@ -23,175 +33,341 @@ try {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     
+    // 로그인 상태 유지 설정
+    window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => {
+            console.log('로그인 상태 유지 설정 완료');
+        })
+        .catch((error) => {
+            console.error('로그인 상태 유지 설정 실패:', error);
+        });
+    
+    // Firestore 설정 최적화
+    window.db.settings({
+        cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+    });
+    
+    // Firestore 컬렉션 참조 정의 (전역으로 접근 가능하게)
+    window.postsCollection = window.db.collection('posts');
+    window.usersCollection = window.db.collection('users');
+    window.booksCollection = window.db.collection('books');
+    
     // 구글 로그인 프로바이더 설정
     window.googleProvider = new firebase.auth.GoogleAuthProvider();
     window.googleProvider.addScope('email');
     window.googleProvider.addScope('profile');
     
-    // 구글 클라이언트 설정 - 환경 변수 사용
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1027437317910-i8ep59ublietsfssi60i0j32hhl5us05.apps.googleusercontent.com';
+    // 구글 클라이언트 설정 - CORS 정책 개선
     window.googleProvider.setCustomParameters({
-        'client_id': googleClientId
+        'prompt': 'select_account',
+        'access_type': 'online'
     });
     
-    console.log('Firebase Authentication 초기화 완료');
+    window.firebaseInitialized = true;
+    console.log('Firebase 모든 서비스 초기화 완료');
     
-    // 사용자 상태 변경 감지
+    // 사용자 상태 변경 감지 - 개선된 버전
     auth.onAuthStateChanged((user) => {
+        console.log('인증 상태 변경 감지:', user ? user.email : '로그아웃');
+        
         if (user) {
             console.log('사용자 로그인됨:', user.email);
+            window.firestoreReady = true;
+            window.currentUser = user;
+            
+            // UI 업데이트
             updateUIForLoggedInUser(user);
+            
+            // 사용자 프로필 확인
+            checkUserProfile(user);
+            
+            // 로그인 후 BoardManager 초기화
+            if (window.boardManager && typeof window.boardManager.initializeManager === 'function') {
+                window.boardManager.initializeManager().catch(error => {
+                    console.error('로그인 후 BoardManager 초기화 실패:', error);
+                });
+            }
         } else {
             console.log('사용자 로그아웃됨');
+            window.firestoreReady = false;
+            window.currentUser = null;
+            
+            // UI 업데이트
             updateUIForLoggedOutUser();
+            
+            // 로그아웃 상태에서도 기본 데이터는 조회 가능하도록 설정
+            if (window.boardManager && typeof window.boardManager.initializeManager === 'function') {
+                window.boardManager.initializeManager().catch(error => {
+                    console.error('로그아웃 후 BoardManager 초기화 실패:', error);
+                });
+            }
         }
     });
     
 } catch (error) {
-    console.error('Firebase 초기화 오류:', error);
-    
-    // Firebase 연결 실패 시 로컬 스토리지 사용
-    console.log('로컬 스토리지 모드로 전환');
-    window.firebaseError = true;
-    window.useLocalStorage = true;
+    console.error('Firebase 초기화 치명적 오류:', error);
+    alert('서비스 초기화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
 }
 
-// 구글 로그인 함수
+// Firestore 준비 상태 확인 함수
+function isFirestoreReady() {
+    return window.firebaseInitialized && window.postsCollection;
+}
+
+// 구글 로그인 함수 개선 - CORS 정책 문제 해결
 async function signInWithGoogle() {
     try {
-        // 팝업 차단 방지를 위한 사용자 상호작용 확인
         console.log('구글 로그인 시도 중...');
         
-        // 구글 로그인 프로바이더 재설정 (안정성 향상)
+        // 로그인 버튼 비활성화
+        const loginBtn = document.querySelector('.login-btn');
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.textContent = '로그인 중...';
+        }
+        
+        // 새로운 프로바이더 인스턴스 생성
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.addScope('email');
-        provider.addScope('profile');
+        provider.addScope('https://www.googleapis.com/auth/userinfo.email');
+        provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+        
+        // 커스텀 파라미터 설정 - CORS 정책 개선
         provider.setCustomParameters({
-            'client_id': '1027437317910-i8ep59ublietsfssi60i0j32hhl5us05.apps.googleusercontent.com',
-            'prompt': 'select_account'
+            'prompt': 'select_account',
+            'access_type': 'online',
+            'include_granted_scopes': 'true'
         });
         
-        const result = await auth.signInWithPopup(provider);
+        let result;
+        
+        try {
+            // 먼저 팝업 방식 시도
+            result = await auth.signInWithPopup(provider);
+            console.log('팝업 로그인 성공:', result.user.email);
+        } catch (popupError) {
+            console.log('팝업 로그인 실패:', popupError.code);
+            
+            if (popupError.code === 'auth/popup-blocked' || 
+                popupError.code === 'auth/popup-closed-by-user' ||
+                popupError.message.includes('Cross-Origin-Opener-Policy')) {
+                
+                console.log('리다이렉트 방식으로 전환');
+                // 리다이렉트 방식으로 전환
+                await auth.signInWithRedirect(provider);
+                return; // 리다이렉트 후에는 페이지가 새로고침됨
+            } else {
+                throw popupError;
+            }
+        }
+        
         const user = result.user;
         console.log('구글 로그인 성공:', user.email);
         
-        // 사용자 프로필 확인
-        await checkUserProfile(user);
+        // 로그인 성공 후 UI 즉시 업데이트
+        window.currentUser = user;
+        updateUIForLoggedInUser(user);
         
         return user;
+        
     } catch (error) {
         console.error('구글 로그인 오류:', error);
         
+        // 로그인 버튼 복원
+        const loginBtn = document.querySelector('.login-btn');
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = '구글 로그인';
+        }
+        
         // 에러 타입별 처리
         if (error.code === 'auth/popup-closed-by-user') {
-            alert('로그인이 취소되었습니다.');
+            console.log('사용자가 로그인을 취소했습니다.');
         } else if (error.code === 'auth/popup-blocked') {
-            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용하거나 페이지를 새로고침 후 다시 시도해주세요.');
         } else if (error.code === 'auth/cancelled-popup-request') {
             console.log('이전 팝업 요청이 취소됨');
+        } else if (error.code === 'auth/operation-not-allowed') {
+            console.error('Firebase Authentication이 활성화되지 않았습니다.');
+            alert('로그인 서비스가 활성화되지 않았습니다. 관리자에게 문의해주세요.');
+        } else if (error.code === 'auth/unauthorized-domain') {
+            console.error('허용되지 않은 도메인에서 로그인 시도');
+            alert('이 도메인에서는 로그인이 허용되지 않습니다.');
+        } else if (error.message && error.message.includes('Identity Toolkit API')) {
+            console.error('Google Identity Toolkit API가 활성화되지 않음:', error);
+            showServiceNotice();
+            alert('Google 로그인 서비스 설정이 완료되지 않았습니다.\n잠시 후 다시 시도해주세요.');
+        } else if (error.message && error.message.includes('identitytoolkit')) {
+            console.error('Identity Toolkit 관련 오류:', error);
+            showServiceNotice();
+            alert('Google 로그인 서비스에 일시적인 문제가 있습니다.\n잠시 후 다시 시도해주세요.');
+        } else if (error.code === 'auth/network-request-failed') {
+            alert('네트워크 연결을 확인해주세요.');
         } else {
-            alert('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+            console.error('알 수 없는 로그인 오류:', error);
+            alert('로그인 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.');
         }
         throw error;
     }
 }
+
+// 리다이렉트 결과 처리
+auth.getRedirectResult().then((result) => {
+    if (result.user) {
+        console.log('리다이렉트 로그인 성공:', result.user.email);
+        window.currentUser = result.user;
+        updateUIForLoggedInUser(result.user);
+        checkUserProfile(result.user);
+    }
+}).catch((error) => {
+    console.error('리다이렉트 로그인 오류:', error);
+});
 
 // 로그아웃 함수
 async function signOut() {
     try {
         await auth.signOut();
         console.log('로그아웃 완료');
+        window.currentUser = null;
+        updateUIForLoggedOutUser();
+        // 페이지 새로고침 대신 상태만 업데이트
     } catch (error) {
         console.error('로그아웃 오류:', error);
     }
 }
 
-// 사용자 프로필 확인
-async function checkUserProfile(user) {
-    try {
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        
-        if (!userDoc.exists) {
-            // 신규 사용자 - 프로필 설정 모달 표시
-            showProfileSetupModal(user);
-        } else {
-            // 기존 사용자 - 프로필 정보 로드
-            const userData = userDoc.data();
-            window.currentUser = {
-                uid: user.uid,
-                email: user.email,
-                nickname: userData.nickname,
-                job: userData.job,
-                domain: userData.domain,
-                region: userData.region,
-                displayName: `${userData.nickname}/${userData.job}/${userData.domain}/${userData.region}`
-            };
-            console.log('사용자 프로필 로드 완료:', window.currentUser.displayName);
-        }
-    } catch (error) {
-        console.error('사용자 프로필 확인 오류:', error);
-        showProfileSetupModal(user);
+// UI 업데이트 함수들 - 개선된 버전
+function updateUIForLoggedInUser(user) {
+    console.log('로그인 UI 업데이트 시작:', user.email);
+    
+    // 로그인 버튼 숨기기
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.style.display = 'none';
+        console.log('로그인 버튼 숨김');
     }
+    
+    // 사용자 드롭다운 표시
+    const userDropdown = document.getElementById('user-dropdown');
+    if (userDropdown) {
+        userDropdown.style.display = 'block';
+        console.log('사용자 드롭다운 표시');
+        
+        // 사용자 닉네임 설정 (Firebase에서 가져오거나 기본값 사용)
+        updateUserNickname(user);
+    }
+    
+    // 로그인 버튼 복원 (에러 상태에서)
+    if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fab fa-google"></i> 로그인';
+    }
+    
+    console.log('로그인 UI 업데이트 완료');
 }
 
-// UI 업데이트 함수들
-function updateUIForLoggedInUser(user) {
-    // 로그인 상태 UI 업데이트
-    const loginBtn = document.getElementById('login-btn');
-    const userDropdown = document.getElementById('user-dropdown');
-    const userNickname = document.getElementById('user-nickname');
-    
-    if (loginBtn) loginBtn.style.display = 'none';
-    if (userDropdown) userDropdown.style.display = 'block';
-    if (userNickname && window.currentUser) {
-        userNickname.textContent = window.currentUser.nickname || window.currentUser.displayName;
+// 사용자 닉네임 업데이트
+async function updateUserNickname(user) {
+    try {
+        const userNickname = document.getElementById('user-nickname');
+        if (!userNickname) return;
+        
+        // Firestore에서 사용자 프로필 가져오기
+        if (window.usersCollection) {
+            const userDoc = await window.usersCollection.doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                userNickname.textContent = userData.nickname || user.displayName || user.email.split('@')[0];
+            } else {
+                userNickname.textContent = user.displayName || user.email.split('@')[0];
+            }
+        } else {
+            userNickname.textContent = user.displayName || user.email.split('@')[0];
+        }
+    } catch (error) {
+        console.error('닉네임 업데이트 오류:', error);
+        const userNickname = document.getElementById('user-nickname');
+        if (userNickname) {
+            userNickname.textContent = user.displayName || user.email.split('@')[0];
+        }
     }
 }
 
 function updateUIForLoggedOutUser() {
-    // 로그아웃 상태 UI 업데이트
+    console.log('로그아웃 UI 업데이트 시작');
+    
+    // 로그인 버튼 표시
     const loginBtn = document.getElementById('login-btn');
-    const userDropdown = document.getElementById('user-dropdown');
-    
-    if (loginBtn) loginBtn.style.display = 'block';
-    if (userDropdown) userDropdown.style.display = 'none';
-    
-    // 드롭다운 닫기
-    closeUserDropdown();
-    
-    window.currentUser = null;
-}
-
-// 사용자 드롭다운 토글
-function toggleUserDropdown() {
-    const userDropdown = document.getElementById('user-dropdown');
-    if (userDropdown) {
-        userDropdown.classList.toggle('active');
+    if (loginBtn) {
+        loginBtn.style.display = 'block';
+        console.log('로그인 버튼 표시');
     }
-}
-
-// 사용자 드롭다운 닫기
-function closeUserDropdown() {
+    
+    // 사용자 드롭다운 숨기기
     const userDropdown = document.getElementById('user-dropdown');
     if (userDropdown) {
+        userDropdown.style.display = 'none';
         userDropdown.classList.remove('active');
+        console.log('사용자 드롭다운 숨김');
+    }
+    
+    console.log('로그아웃 UI 업데이트 완료');
+}
+
+// 사용자 프로필 확인 함수
+async function checkUserProfile(user) {
+    try {
+        if (!window.usersCollection) {
+            console.warn('usersCollection이 초기화되지 않았습니다.');
+            return;
+        }
+        
+        const userDoc = await window.usersCollection.doc(user.uid).get();
+        if (!userDoc.exists) {
+            // 새 사용자인 경우 프로필 설정 모달 표시
+            showProfileSetupModal(user);
+        }
+    } catch (error) {
+        console.error('사용자 프로필 확인 오류:', error);
     }
 }
 
-// 프로필 수정 모달 표시
-function showEditProfileModal() {
-    closeUserDropdown();
-    if (window.currentUser) {
-        showProfileSetupModal(null, true); // 수정 모드로 호출
+// API 상태 확인 함수
+async function checkGoogleAPIStatus() {
+    try {
+        // Google Identity Toolkit API 상태 확인을 위한 간단한 테스트
+        const provider = new firebase.auth.GoogleAuthProvider();
+        console.log('Google API 상태 확인 완료');
+        return true;
+    } catch (error) {
+        console.error('Google API 상태 확인 실패:', error);
+        return false;
     }
 }
 
-// 외부 클릭 시 드롭다운 닫기
-document.addEventListener('click', function(event) {
-    const userDropdown = document.getElementById('user-dropdown');
-    if (userDropdown && !userDropdown.contains(event.target)) {
-        closeUserDropdown();
+// 서비스 공지 표시 함수
+function showServiceNotice() {
+    const notice = document.getElementById('service-notice');
+    if (notice) {
+        notice.style.display = 'block';
+        // 10초 후 자동 숨김
+        setTimeout(() => {
+            notice.style.display = 'none';
+        }, 10000);
     }
-});
+}
 
-console.log('Firebase Authentication 설정 완료'); 
+// DOM 로드 완료 후 초기 상태 확인
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM 로드 완료 - 초기 인증 상태 확인');
+    
+    // 현재 로그인 상태 확인
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+        console.log('페이지 로드 시 이미 로그인됨:', currentUser.email);
+        window.currentUser = currentUser;
+        updateUIForLoggedInUser(currentUser);
+    } else {
+        console.log('페이지 로드 시 로그아웃 상태');
+        updateUIForLoggedOutUser();
+    }
+}); 

@@ -1,249 +1,225 @@
+// 전역 변수
+let boardManager;
+
+// 슬라이드쇼 관련 변수
+let currentSlide = 0;
+let reviewImages = [
+    { src: './reviews/review1.jpg', caption: '이력서 컨설팅 후기 - "정말 도움이 많이 되었습니다!"' },
+    { src: './reviews/review2.jpg', caption: '포트폴리오 컨설팅 후기 - "취업에 성공했어요!"' },
+    { src: './reviews/review3.jpg', caption: '커리어 컨설팅 후기 - "방향성을 잡을 수 있었습니다"' },
+    { src: './reviews/review4.jpg', caption: '자기소개서 컨설팅 후기 - "면접 기회가 늘어났어요"' },
+    { src: './reviews/review5.jpg', caption: '경력기술서 컨설팅 후기 - "전문적인 피드백 감사합니다"' }
+];
+
+// 페이지네이션 관련 변수
+const POSTS_PER_PAGE = 10;
+let currentPage = 1;
+let totalPages = 1;
+
 // 하이브리드 게시판 데이터 관리자 (Firebase + LocalStorage)
 class HybridBoardManager {
     constructor() {
-        this.currentBoard = '';
-        this.useFirebase = false;
+        this.useFirebase = true; // 항상 Firebase 사용
         this.posts = {};
-        this.initialized = false;
-        this.boardNames = {
-            'job-info': '직무',
-            'career-prep': '취업준비',
-            'news': '뉴스',
-            'policy-library': '정책도서관',
-            'faq': '자주나오는 질문',
-            'study': '스터디'
-        };
-        this.initializeManager();
+        this.currentBoard = '';
+        this.maxRetries = 3;
+        this.retryDelay = 1000; // 1초
+        this.loadLocalPosts(); // 백업용으로만 사용
     }
 
     // 매니저 초기화
     async initializeManager() {
-        if (this.initialized) {
-            return; // 이미 초기화됨
+        console.log('BoardManager 초기화 시작...');
+        
+        // Firebase 초기화 대기
+        if (!window.firebaseInitialized) {
+            console.log('Firebase 초기화 대기 중...');
+            await this.waitForFirebase();
         }
         
-        // Firebase 사용 가능 여부 확인
+        // postsCollection 확인
+        if (!window.postsCollection) {
+            console.error('postsCollection이 정의되지 않았습니다.');
+            return;
+        }
+        
         try {
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                this.useFirebase = true;
-                console.log('Firebase 모드로 초기화');
-            } else {
-                throw new Error('Firebase 사용 불가');
-            }
+            await this.initSampleData();
+            console.log('BoardManager Firebase 모드로 초기화 완료');
         } catch (error) {
-            this.useFirebase = false;
-            console.log('로컬 스토리지 모드로 초기화');
-            this.loadLocalPosts();
+            console.error('BoardManager 초기화 오류:', error);
+            // Firebase 오류여도 계속 Firebase 사용 시도
         }
-        
-        await this.initSampleData();
-        this.initialized = true;
-        console.log('BoardManager 초기화 완료');
     }
 
-    // 로컬 스토리지에서 게시글 불러오기
+    // Firebase 초기화 대기
+    async waitForFirebase(maxWait = 10000) {
+        const startTime = Date.now();
+        
+        while (!window.firebaseInitialized && (Date.now() - startTime) < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        if (!window.firebaseInitialized) {
+            throw new Error('Firebase 초기화 타임아웃');
+        }
+        
+        console.log('Firebase 초기화 완료 확인');
+    }
+
+    // Firestore 접근 가능 여부 확인
+    canAccessFirestore() {
+        return window.firebaseInitialized && window.postsCollection;
+    }
+
+    // 재시도 로직이 포함된 Firebase 작업 실행
+    async executeWithRetry(operation, operationName = 'Firebase 작업') {
+        // Firestore 접근 가능 여부 확인
+        if (!this.canAccessFirestore()) {
+            console.warn(`${operationName}: Firestore 접근 불가 - 빈 결과 반환`);
+            if (operationName.includes('조회')) {
+                return [];
+            } else {
+                throw new Error('Firestore에 접근할 수 없습니다.');
+            }
+        }
+
+        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                console.error(`${operationName} 시도 ${attempt}/${this.maxRetries} 실패:`, error);
+                
+                if (attempt === this.maxRetries) {
+                    // 최종 실패 시 사용자에게 알림
+                    if (operationName.includes('조회')) {
+                        console.warn('데이터 조회 실패 - 빈 배열 반환');
+                        return [];
+                    } else {
+                        throw new Error(`${operationName}이 ${this.maxRetries}번 시도 후 실패했습니다.`);
+                    }
+                }
+                
+                // 재시도 전 대기
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+            }
+        }
+    }
+
+    // 로컬 게시글 불러오기 (백업용)
     loadLocalPosts() {
         const saved = localStorage.getItem('pm-community-posts');
-        this.posts = saved ? JSON.parse(saved) : {};
-    }
-
-    // 로컬 스토리지에 게시글 저장
-    saveLocalPosts() {
-        localStorage.setItem('pm-community-posts', JSON.stringify(this.posts));
-    }
-
-    // 샘플 데이터 초기화
-    async initSampleData() {
-        if (this.useFirebase) {
+        if (saved) {
             try {
-                const snapshot = await postsCollection.limit(1).get();
-                if (snapshot.empty) {
+                this.posts = JSON.parse(saved);
+            } catch (error) {
+                console.error('로컬 게시글 데이터 파싱 오류:', error);
+                this.posts = {};
+            }
+        }
+    }
+
+    // 로컬 게시글 저장 (백업용)
+    saveLocalPosts() {
+        try {
+            localStorage.setItem('pm-community-posts', JSON.stringify(this.posts));
+        } catch (error) {
+            console.error('로컬 게시글 저장 오류:', error);
+        }
+    }
+
+    // 샘플 데이터 초기화 (인증 불필요)
+    async initSampleData() {
+        return this.executeWithRetry(async () => {
+            // 인증 상태와 관계없이 읽기 권한이 있는 경우 데이터 확인
+            const snapshot = await window.postsCollection.limit(1).get();
+            if (snapshot.empty) {
+                console.log('샘플 데이터가 없습니다. 로그인 후 추가 가능합니다.');
+                // 로그인하지 않은 상태에서는 샘플 데이터 추가하지 않음
+                if (window.firestoreReady) {
                     console.log('Firebase 샘플 데이터 추가 중...');
                     await this.addSamplePosts();
                 }
-            } catch (error) {
-                console.error('Firebase 샘플 데이터 초기화 오류:', error);
-                this.useFirebase = false;
-                this.initLocalSampleData();
             }
-        } else {
-            this.initLocalSampleData();
-        }
+        }, '샘플 데이터 초기화');
     }
 
-    // 로컬 샘플 데이터 초기화
-    initLocalSampleData() {
-        if (Object.keys(this.posts).length === 0) {
-            console.log('로컬 샘플 데이터 추가 중...');
-            this.posts = {
-                'job-info': [
-                    {
-                        id: 1,
-                        title: 'PM의 핵심 역할과 책임',
-                        content: `프로덕트 매니저(PM)는 제품의 전략 수립부터 출시까지 전 과정을 관리하는 핵심 역할을 담당합니다.
-
-<strong>주요 업무:</strong>
-• 제품 로드맵 수립 및 관리
-• 시장 조사 및 사용자 요구사항 분석
-• 개발팀과의 협업 및 일정 관리
-• 성과 분석 및 개선 방안 도출
-
-실무에서는 다양한 이해관계자들과의 소통이 매우 중요합니다.`,
-                        source: 'PM 실무 가이드북',
-                        date: new Date('2024-12-20'),
-                        author: '관리자'
-                    },
-                    {
-                        id: 2,
-                        title: 'PO와 PM의 차이점 완벽 정리',
-                        content: `많은 분들이 헷갈려하시는 PO(Product Owner)와 PM(Product Manager)의 차이점을 명확히 정리했습니다.
-
-<strong>Product Owner (PO):</strong>
-• 애자일/스크럼 팀의 제품 책임자
-• 백로그 관리 및 우선순위 결정
-• 개발팀과 밀접한 협업
-
-<strong>Product Manager (PM):</strong>
-• 제품 전략 및 비전 수립
-• 시장 분석 및 경쟁사 분석
-• 비즈니스 성과 책임
-
-실제로는 회사마다 역할 정의가 다를 수 있습니다.`,
-                        source: 'https://example.com/po-vs-pm',
-                        date: new Date('2024-12-19'),
-                        author: 'PM김철수'
-                    }
-                ],
-                'career-prep': [],
-                'news': []
-            };
-            this.saveLocalPosts();
-        }
-    }
-
-    // 샘플 게시글 추가
+    // 샘플 게시글 추가 (현재 비활성화)
     async addSamplePosts() {
-        const samplePosts = [
-            {
-                boardId: 'job-info',
-                title: 'PM의 핵심 역할과 책임',
-                content: `프로덕트 매니저(PM)는 제품의 전략 수립부터 출시까지 전 과정을 관리하는 핵심 역할을 담당합니다.
-
-<strong>주요 업무:</strong>
-• 제품 로드맵 수립 및 관리
-• 시장 조사 및 사용자 요구사항 분석
-• 개발팀과의 협업 및 일정 관리
-• 성과 분석 및 개선 방안 도출
-
-실무에서는 다양한 이해관계자들과의 소통이 매우 중요합니다.`,
-                source: 'PM 실무 가이드북',
-                author: '관리자'
-            },
-            {
-                boardId: 'job-info',
-                title: 'PO와 PM의 차이점 완벽 정리',
-                content: `많은 분들이 헷갈려하시는 PO(Product Owner)와 PM(Product Manager)의 차이점을 명확히 정리했습니다.
-
-<strong>Product Owner (PO):</strong>
-• 애자일/스크럼 팀의 제품 책임자
-• 백로그 관리 및 우선순위 결정
-• 개발팀과 밀접한 협업
-
-<strong>Product Manager (PM):</strong>
-• 제품 전략 및 비전 수립
-• 시장 분석 및 경쟁사 분석
-• 비즈니스 성과 책임
-
-실제로는 회사마다 역할 정의가 다를 수 있습니다.`,
-                source: 'https://example.com/po-vs-pm',
-                author: 'PM김철수'
-            },
-
-        ];
-
-        for (const post of samplePosts) {
-            await this.addPost(post.boardId, post);
-        }
-        console.log('샘플 데이터 추가 완료');
+        // 샘플 데이터를 제거하여 깨끗한 상태로 시작
+        console.log('샘플 데이터 추가 건너뜀 - 깨끗한 상태로 시작');
     }
 
-    // 게시글 추가 (하이브리드)
+    // 게시글 추가
     async addPost(boardId, postData) {
-        if (this.useFirebase) {
-            try {
-                const newPost = {
-                    boardId: boardId,
-                    title: postData.title,
-                    content: postData.content,
-                    source: postData.source || '',
-                    author: postData.author || '익명',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                const docRef = await postsCollection.add(newPost);
-                console.log('Firebase 게시글 추가 완료:', docRef.id);
-                return { id: docRef.id, ...newPost };
-            } catch (error) {
-                console.error('Firebase 게시글 추가 오류:', error);
-                // Firebase 실패 시 로컬로 폴백
-                this.useFirebase = false;
-                return this.addLocalPost(boardId, postData);
-            }
-        } else {
-            return this.addLocalPost(boardId, postData);
-        }
+        return this.executeWithRetry(async () => {
+            const newPost = {
+                boardId: boardId,
+                title: postData.title,
+                content: postData.content,  
+                source: postData.source || '',
+                author: postData.author || '익명',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            const docRef = await window.postsCollection.add(newPost);
+            console.log('Firebase 게시글 추가 완료:', docRef.id);
+            
+            // 백업용으로 로컬에도 저장
+            this.addLocalPost(boardId, { 
+                ...postData, 
+                id: docRef.id,
+                date: new Date()
+            });
+            
+            return { id: docRef.id, ...newPost };
+        }, '게시글 추가');
     }
 
-    // 로컬 게시글 추가
+    // 로컬 게시글 추가 (백업용)
     addLocalPost(boardId, postData) {
         if (!this.posts[boardId]) {
             this.posts[boardId] = [];
         }
         
         const newPost = {
-            id: Date.now(),
+            id: postData.id || Date.now(),
             title: postData.title,
             content: postData.content,
             source: postData.source || '',
-            date: new Date(),
+            date: postData.date || new Date(),
             author: postData.author || '익명'
         };
         
         this.posts[boardId].unshift(newPost);
         this.saveLocalPosts();
-        console.log('로컬 게시글 추가 완료:', newPost.id);
         return newPost;
     }
 
-    // 특정 게시판 게시글 가져오기 (하이브리드)
+    // 특정 게시판 게시글 가져오기
     async getPosts(boardId) {
-        if (this.useFirebase) {
-            try {
-                const snapshot = await postsCollection
-                    .where('boardId', '==', boardId)
-                    .orderBy('createdAt', 'desc')
-                    .get();
-                
-                const posts = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    posts.push({
-                        id: doc.id,
-                        ...data,
-                        date: data.createdAt ? data.createdAt.toDate() : new Date()
-                    });
+        return this.executeWithRetry(async () => {
+            const snapshot = await window.postsCollection
+                .where('boardId', '==', boardId)
+                .get();
+            
+            const posts = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                posts.push({
+                    id: doc.id,
+                    ...data,
+                    date: data.createdAt ? data.createdAt.toDate() : new Date()
                 });
-                
-                return posts;
-            } catch (error) {
-                console.error('Firebase 게시글 조회 오류:', error);
-                this.useFirebase = false;
-                return this.getLocalPosts(boardId);
-            }
-        } else {
-            return this.getLocalPosts(boardId);
-        }
+            });
+            
+            // 클라이언트 측에서 정렬 (인덱스 문제 해결)
+            posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            console.log(`Firebase에서 ${boardId} 게시판 ${posts.length}개 게시글 조회 완료`);
+            return posts;
+        }, `${boardId} 게시글 조회`);
     }
 
     // 로컬 게시글 가져오기
@@ -254,35 +230,29 @@ class HybridBoardManager {
         return this.posts[boardId].sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    // 모든 게시판의 최근 게시글 가져오기 (하이브리드)
+    // 모든 게시판의 최근 게시글 가져오기
     async getRecentPosts(limit = 6) {
-        if (this.useFirebase) {
-            try {
-                const snapshot = await postsCollection
-                    .orderBy('createdAt', 'desc')
-                    .limit(limit)
-                    .get();
-                
-                const posts = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    posts.push({
-                        id: doc.id,
-                        ...data,
-                        date: data.createdAt ? data.createdAt.toDate() : new Date(),
-                        boardName: this.boardNames[data.boardId] || '게시판'
-                    });
+        return this.executeWithRetry(async () => {
+            const snapshot = await window.postsCollection.get();
+            
+            const posts = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                posts.push({
+                    id: doc.id,
+                    ...data,
+                    date: data.createdAt ? data.createdAt.toDate() : new Date(),
+                    boardName: this.boardNames[data.boardId] || '게시판'
                 });
-                
-                return posts;
-            } catch (error) {
-                console.error('Firebase 최근 게시글 조회 오류:', error);
-                this.useFirebase = false;
-                return this.getLocalRecentPosts(limit);
-            }
-        } else {
-            return this.getLocalRecentPosts(limit);
-        }
+            });
+            
+            // 클라이언트 측에서 정렬 후 제한 (인덱스 문제 해결)
+            posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const limitedPosts = posts.slice(0, limit);
+            
+            console.log(`Firebase에서 최근 게시글 ${limitedPosts.length}개 조회 완료`);
+            return limitedPosts;
+        }, '최근 게시글 조회');
     }
 
     // 로컬 최근 게시글 가져오기
@@ -309,51 +279,87 @@ class HybridBoardManager {
         return this.boardNames[boardId] || '게시판';
     }
 
-
+    // 게시판 이름 매핑
+    boardNames = {
+        'job-info': '직무',
+        'career-prep': '취업준비', 
+        'news': '뉴스',
+        'faq': '자주나오는 질문',
+        'policy-library': '정책도서관',
+        'study': '스터디'
+    };
 }
 
-// 전역 게시판 매니저 인스턴스
-const boardManager = new HybridBoardManager();
+// 전역 게시판 매니저 인스턴스 - 즉시 생성
+console.log('BoardManager 인스턴스 생성 중...');
+window.boardManager = new HybridBoardManager();
+console.log('BoardManager 인스턴스 생성 완료');
+
+// DOM 로드 완료 후 초기화
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM 로드 완료 - BoardManager 초기화 시작');
+    try {
+        if (window.boardManager) {
+            await window.boardManager.initializeManager();
+            console.log('BoardManager 초기화 성공');
+        } else {
+            console.error('BoardManager 인스턴스가 없습니다.');
+        }
+    } catch (error) {
+        console.error('BoardManager 초기화 실패:', error);
+    }
+});
 
 // 페이지 전환 함수들
 async function showHomePage() {
-    document.getElementById('home-page').style.display = 'block';
-    document.getElementById('board-page').style.display = 'none';
-    document.getElementById('books-page').style.display = 'none';
-    document.getElementById('consulting-page').style.display = 'none';
+    // null 체크 추가
+    const homePage = document.getElementById('home-page');
+    const boardPage = document.getElementById('board-page');
+    const booksPage = document.getElementById('books-page');
+    const consultingPage = document.getElementById('consulting-page');
+    
+    if (homePage) homePage.style.display = 'block';
+    if (boardPage) boardPage.style.display = 'none';
+    if (booksPage) booksPage.style.display = 'none';
+    if (consultingPage) consultingPage.style.display = 'none';
     
     // boardManager 초기화 완료 대기
-    if (boardManager && typeof boardManager.initializeManager === 'function') {
-        await boardManager.initializeManager();
+    if (window.boardManager && typeof window.boardManager.initializeManager === 'function') {
+        try {
+            await window.boardManager.initializeManager();
+        } catch (error) {
+            console.error('BoardManager 초기화 오류:', error);
+        }
     }
     
     updateRecentPosts();
 }
 
 function showBoard(boardId) {
-    boardManager.currentBoard = boardId;
-    document.getElementById('home-page').style.display = 'none';
-    document.getElementById('board-page').style.display = 'block';
-    document.getElementById('books-page').style.display = 'none';
-    document.getElementById('consulting-page').style.display = 'none';
+    if (window.boardManager) {
+        window.boardManager.currentBoard = boardId;
+    }
+    
+    // null 체크 추가
+    const homePage = document.getElementById('home-page');
+    const boardPage = document.getElementById('board-page');
+    const booksPage = document.getElementById('books-page');
+    const consultingPage = document.getElementById('consulting-page');
+    const boardTitle = document.getElementById('board-title');
+    
+    if (homePage) homePage.style.display = 'none';
+    if (boardPage) boardPage.style.display = 'block';
+    if (booksPage) booksPage.style.display = 'none';
+    if (consultingPage) consultingPage.style.display = 'none';
     
     // 게시판 제목 설정
-    document.getElementById('board-title').textContent = boardManager.getBoardName(boardId);
+    if (boardTitle && window.boardManager) {
+        boardTitle.textContent = window.boardManager.getBoardName(boardId);
+    }
     
-    // 취업준비 게시판인 경우 컨설팅받기 버튼 추가
-    const boardHeader = document.querySelector('.board-header');
+    // 기존 컨설팅받기 버튼 제거 (헤더에서)
     const existingConsultingBtn = document.getElementById('consulting-btn');
-    
-    if (boardId === 'career-prep' && !existingConsultingBtn) {
-        const consultingBtn = document.createElement('button');
-        consultingBtn.id = 'consulting-btn';
-        consultingBtn.className = 'consulting-btn';
-        consultingBtn.innerHTML = '<i class="fas fa-user-tie"></i> 컨설팅받기';
-        consultingBtn.onclick = () => showConsultingPage();
-        
-        const writeBtn = document.querySelector('.write-btn');
-        boardHeader.insertBefore(consultingBtn, writeBtn);
-    } else if (boardId !== 'career-prep' && existingConsultingBtn) {
+    if (existingConsultingBtn) {
         existingConsultingBtn.remove();
     }
     
@@ -380,52 +386,35 @@ function showConsultingPage() {
     document.getElementById('board-page').style.display = 'none';
     document.getElementById('books-page').style.display = 'none';
     document.getElementById('consulting-page').style.display = 'block';
-    loadConsultingReviews();
+    
+    // 슬라이드쇼 초기화
+    setTimeout(() => {
+        initReviewSlideshow();
+        startAutoSlide();
+    }, 100);
 }
 
 // 게시글 목록 업데이트 (하이브리드)
 async function updatePostsList(boardId) {
     const postsList = document.getElementById('posts-list');
+    if (!postsList) {
+        console.error('posts-list 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
     postsList.innerHTML = '<div class="loading">게시글을 불러오는 중...</div>';
     
     try {
-        const posts = await boardManager.getPosts(boardId);
-        postsList.innerHTML = '';
-        
-        if (posts.length === 0) {
-            postsList.innerHTML = `
-                <div class="no-posts">
-                    <i class="fas fa-inbox"></i>
-                    <h3>아직 게시글이 없습니다</h3>
-                    <p>첫 번째 게시글을 작성해보세요!</p>
-                </div>
-            `;
+        if (!window.boardManager) {
+            console.error('BoardManager가 초기화되지 않았습니다.');
+            postsList.innerHTML = '<div class="error">게시판 관리자가 초기화되지 않았습니다.</div>';
             return;
         }
         
-        posts.forEach(post => {
-            const postElement = document.createElement('div');
-            postElement.className = 'post-item';
-            postElement.innerHTML = `
-                <div class="post-header">
-                    <h3 class="post-title">${post.title}</h3>
-                    <div class="post-meta">
-                        <span class="post-author"><i class="fas fa-user"></i> ${post.author}</span>
-                        <span class="post-date"><i class="fas fa-calendar"></i> ${formatDate(post.date)}</span>
-                    </div>
-                </div>
-                <div class="post-content">
-                    ${post.content.replace(/<[^>]*>/g, '').substring(0, 200)}${post.content.length > 200 ? '...' : ''}
-                </div>
-                ${post.source ? `<div class="post-source"><i class="fas fa-link"></i> ${post.source}</div>` : ''}
-                <div class="post-actions">
-                    <button class="read-more-btn" onclick="showFullPost('${post.id}', '${boardId}')">
-                        <i class="fas fa-eye"></i> 자세히 보기
-                    </button>
-                </div>
-            `;
-            postsList.appendChild(postElement);
-        });
+        const posts = await window.boardManager.getPosts(boardId);
+        
+        // 페이지네이션 적용
+        updatePostsListWithPagination(boardId, posts);
     } catch (error) {
         console.error('게시글 목록 업데이트 오류:', error);
         postsList.innerHTML = '<div class="error">게시글을 불러오는 중 오류가 발생했습니다.</div>';
@@ -435,10 +424,21 @@ async function updatePostsList(boardId) {
 // 최근 게시글 업데이트 (하이브리드)
 async function updateRecentPosts() {
     const recentPostsContainer = document.getElementById('recent-posts');
+    if (!recentPostsContainer) {
+        console.error('recent-posts 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
     recentPostsContainer.innerHTML = '<div class="loading">최근 게시글을 불러오는 중...</div>';
     
     try {
-        const posts = await boardManager.getRecentPosts();
+        if (!window.boardManager) {
+            console.error('BoardManager가 초기화되지 않았습니다.');
+            recentPostsContainer.innerHTML = '<div class="error">게시판 관리자가 초기화되지 않았습니다.</div>';
+            return;
+        }
+        
+        const posts = await window.boardManager.getRecentPosts();
         recentPostsContainer.innerHTML = '';
         
         if (posts.length === 0) {
@@ -514,13 +514,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 현재 게시판 ID 가져오기
+            const currentBoardId = getCurrentBoardId() || boardManager.currentBoard;
+            if (!currentBoardId) {
+                alert('게시판을 선택해주세요.');
+                return;
+            }
+            
             const submitBtn = document.querySelector('.btn-submit');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = '게시 중...';
             submitBtn.disabled = true;
             
             try {
-                await boardManager.addPost(boardManager.currentBoard, {
+                await boardManager.addPost(currentBoardId, {
                     title: title,
                     content: content,
                     source: source,
@@ -529,6 +536,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 closeWriteModal();
                 alert('게시글이 성공적으로 등록되었습니다!');
+                // 게시글 목록 새로고침
+                updatePostsList(currentBoardId);
             } catch (error) {
                 console.error('게시글 등록 오류:', error);
                 alert('게시글 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -611,7 +620,7 @@ async function showFullPost(postId, boardId) {
         let post;
         
         if (boardManager.useFirebase) {
-            const doc = await postsCollection.doc(postId).get();
+            const doc = await window.postsCollection.doc(postId).get();
             if (!doc.exists) {
                 alert('게시글을 찾을 수 없습니다.');
                 return;
@@ -1123,8 +1132,16 @@ function closeProfileSetupModal() {
 }
 
 function setupProfileFormListeners(user, isEditMode = false) {
+    console.log('setupProfileFormListeners 호출됨');
+    
     const form = document.getElementById('profile-setup-form');
+    if (!form) {
+        console.error('profile-setup-form을 찾을 수 없습니다');
+        return;
+    }
+    
     const inputs = form.querySelectorAll('input, select');
+    console.log('찾은 입력 요소 개수:', inputs.length);
     
     // 기존 이벤트 리스너 제거
     inputs.forEach(input => {
@@ -1133,10 +1150,22 @@ function setupProfileFormListeners(user, isEditMode = false) {
     });
     
     // 실시간 닉네임 미리보기 업데이트
-    inputs.forEach(input => {
-        input.addEventListener('change', updateNicknamePreview);
-        input.addEventListener('input', updateNicknamePreview);
+    inputs.forEach((input, index) => {
+        console.log(`입력 요소 ${index}: ${input.id || input.name}`);
+        input.addEventListener('change', () => {
+            console.log(`${input.id} 변경됨:`, input.value);
+            updateNicknamePreview();
+        });
+        input.addEventListener('input', () => {
+            console.log(`${input.id} 입력됨:`, input.value);
+            updateNicknamePreview();
+        });
     });
+    
+    // 초기 미리보기 업데이트
+    setTimeout(() => {
+        updateNicknamePreview();
+    }, 100);
     
     // 폼 제출 이벤트
     form.onsubmit = async (e) => {
@@ -1146,20 +1175,30 @@ function setupProfileFormListeners(user, isEditMode = false) {
 }
 
 function updateNicknamePreview() {
-    const nickname = document.getElementById('nickname').value.trim();
-    const job = document.getElementById('job').value;
-    const domain = document.getElementById('domain').value;
-    const region = document.getElementById('region').value;
+    console.log('updateNicknamePreview 호출됨');
+    
+    const nickname = document.getElementById('nickname')?.value?.trim() || '';
+    const job = document.getElementById('job')?.value || '';
+    const domain = document.getElementById('domain')?.value || '';
+    const region = document.getElementById('region')?.value || '';
+    
+    console.log('입력값:', { nickname, job, domain, region });
     
     const previewText = document.getElementById('preview-text');
+    if (!previewText) {
+        console.error('preview-text 요소를 찾을 수 없습니다');
+        return;
+    }
     
     if (nickname && job && domain && region) {
         const fullNickname = `${nickname}/${job}/${domain}/${region}`;
         previewText.textContent = fullNickname;
         previewText.classList.remove('empty');
+        console.log('완성된 닉네임:', fullNickname);
     } else {
         previewText.textContent = '정보를 입력하면 닉네임이 표시됩니다';
         previewText.classList.add('empty');
+        console.log('정보 부족으로 기본 메시지 표시');
     }
 }
 
@@ -1229,4 +1268,218 @@ function updatePostAuthor() {
         return window.currentUser.displayName;
     }
     return '익명';
+}
+
+// 슬라이드쇼 함수들
+function initReviewSlideshow() {
+    const slideshowContainer = document.getElementById('review-slideshow');
+    const dotsContainer = document.getElementById('slideshow-dots');
+    
+    if (!slideshowContainer || !dotsContainer) return;
+    
+    // 슬라이드 생성
+    slideshowContainer.innerHTML = '';
+    dotsContainer.innerHTML = '';
+    
+    reviewImages.forEach((image, index) => {
+        // 슬라이드 아이템 생성
+        const slide = document.createElement('div');
+        slide.className = `slide ${index === 0 ? 'active' : ''}`;
+        slide.innerHTML = `
+            <img src="${image.src}" alt="${image.caption}" onclick="openReviewModal('${image.src}', '${image.caption}')"
+                 onerror="this.src='./reviews/placeholder.jpg'; this.alt='후기 이미지 준비중'">
+            <div class="slide-caption">${image.caption}</div>
+        `;
+        slideshowContainer.appendChild(slide);
+        
+        // 도트 생성
+        const dot = document.createElement('span');
+        dot.className = `dot ${index === 0 ? 'active' : ''}`;
+        dot.onclick = () => currentSlideGo(index);
+        dotsContainer.appendChild(dot);
+    });
+}
+
+function changeSlide(direction) {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    
+    if (slides.length === 0) return;
+    
+    // 현재 슬라이드 비활성화
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    
+    // 새 슬라이드 인덱스 계산
+    currentSlide += direction;
+    if (currentSlide >= slides.length) currentSlide = 0;
+    if (currentSlide < 0) currentSlide = slides.length - 1;
+    
+    // 새 슬라이드 활성화
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+}
+
+function currentSlideGo(n) {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    
+    if (slides.length === 0) return;
+    
+    // 현재 슬라이드 비활성화
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    
+    // 새 슬라이드로 이동
+    currentSlide = n;
+    
+    // 새 슬라이드 활성화
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+}
+
+function openReviewModal(src, caption) {
+    const modal = document.getElementById('review-modal');
+    const modalImg = document.getElementById('review-modal-image');
+    const modalCaption = document.getElementById('review-modal-caption');
+    
+    if (modal && modalImg && modalCaption) {
+        modal.style.display = 'block';
+        modalImg.src = src;
+        modalCaption.textContent = caption;
+    }
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('review-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 자동 슬라이드 기능
+function startAutoSlide() {
+    setInterval(() => {
+        changeSlide(1);
+    }, 5000); // 5초마다 슬라이드 변경
+}
+
+// 페이지네이션 함수들
+function updatePostsListWithPagination(boardId, posts) {
+    const container = document.getElementById('posts-list');
+    if (!container) return;
+    
+    totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+    const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+    const endIndex = startIndex + POSTS_PER_PAGE;
+    const currentPosts = posts.slice(startIndex, endIndex);
+    
+    let html = '<div class="posts-container">';
+    
+    if (currentPosts.length === 0) {
+        html += `
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>아직 게시글이 없습니다</h3>
+                <p>첫 번째 게시글을 작성해보세요!</p>
+            </div>
+        `;
+    } else {
+        currentPosts.forEach(post => {
+            const date = post.date ? new Date(post.date).toLocaleDateString() : '날짜 없음';
+            html += `
+                <div class="post-item" onclick="showFullPost('${post.id}', '${boardId}')">
+                    <div class="post-header">
+                        <h3 class="post-title">${post.title}</h3>
+                        <span class="post-date">${date}</span>
+                    </div>
+                    <div class="post-preview">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</div>
+                    <div class="post-footer">
+                        <span class="post-author">작성자: ${post.author || '익명'}</span>
+                        ${post.source ? `<span class="post-source">출처: ${post.source}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    
+    // 페이지네이션 컨트롤 추가
+    if (totalPages > 1) {
+        html += createPaginationHTML();
+    }
+    
+    // 취업준비 게시판인 경우 컨설팅받기 버튼 추가
+    if (boardId === 'career-prep') {
+        html += `
+            <div class="consulting-cta-section">
+                <div class="consulting-cta-card">
+                    <h3><i class="fas fa-user-tie"></i> 전문 컨설팅 서비스</h3>
+                    <p>PM/PO 커리어 전문가와 1:1 맞춤형 컨설팅을 받아보세요</p>
+                    <button class="consulting-btn" onclick="showConsultingPage()">
+                        <i class="fas fa-comments"></i> 컨설팅받기
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+function createPaginationHTML() {
+    let html = '<div class="pagination">';
+    
+    // 이전 페이지 버튼
+    if (currentPage > 1) {
+        html += `<button class="pagination-btn" onclick="goToPage(${currentPage - 1})">이전</button>`;
+    }
+    
+    // 페이지 번호들
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+            html += `<button class="pagination-btn active">${i}</button>`;
+        } else {
+            html += `<button class="pagination-btn" onclick="goToPage(${i})">${i}</button>`;
+        }
+    }
+    
+    // 다음 페이지 버튼
+    if (currentPage < totalPages) {
+        html += `<button class="pagination-btn" onclick="goToPage(${currentPage + 1})">다음</button>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    const currentBoardId = getCurrentBoardId();
+    if (currentBoardId) {
+        updatePostsList(currentBoardId);
+    }
+}
+
+function getCurrentBoardId() {
+    // 현재 표시 중인 게시판 ID를 반환하는 헬퍼 함수
+    const boardPage = document.getElementById('board-page');
+    if (boardPage && boardPage.style.display !== 'none') {
+        const titleElement = document.getElementById('board-title');
+        if (titleElement) {
+            const title = titleElement.textContent;
+            // 제목으로 boardId 매핑
+            const titleToBoardId = {
+                '직무': 'job-info',
+                '취업준비': 'career-prep',
+                '뉴스': 'news',
+                '정책도서관': 'policy-library',
+                '자주나오는 질문': 'faq',
+                '스터디': 'study'
+            };
+            return titleToBoardId[title] || null;
+        }
+    }
+    return null;
 } 

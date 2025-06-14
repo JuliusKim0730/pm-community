@@ -897,4 +897,61 @@ function initDropdownMenus() {
             });
         }
     });
+}
+
+// 사용자 드롭다운 토글
+function toggleUserDropdown() {
+    const userDropdown = document.getElementById('user-dropdown');
+    if (userDropdown) {
+        userDropdown.classList.toggle('active');
+    }
+}
+
+// 사용자 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    const userDropdown = document.getElementById('user-dropdown');
+    if (userDropdown && !userDropdown.contains(e.target)) {
+        userDropdown.classList.remove('active');
+    }
+});
+
+// 프로필 수정 모달 표시
+function showEditProfileModal() {
+    const modal = document.getElementById('profile-setup-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        
+        // 현재 사용자 정보로 폼 채우기
+        if (window.currentUser) {
+            fillProfileForm();
+        }
+    }
+}
+
+// 현재 사용자 정보로 프로필 폼 채우기
+async function fillProfileForm() {
+    try {
+        if (!window.currentUser || !window.usersCollection) return;
+        
+        const userDoc = await window.usersCollection.doc(window.currentUser.uid).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            
+            // 폼 필드 채우기
+            const nicknameInput = document.getElementById('nickname-input');
+            const jobSelect = document.getElementById('job-select');
+            const domainSelect = document.getElementById('domain-select');
+            const regionSelect = document.getElementById('region-select');
+            
+            if (nicknameInput) nicknameInput.value = userData.nickname || '';
+            if (jobSelect) jobSelect.value = userData.job || '';
+            if (domainSelect) domainSelect.value = userData.domain || '';
+            if (regionSelect) regionSelect.value = userData.region || '';
+            
+            // 닉네임 미리보기 업데이트
+            updateNicknamePreview();
+        }
+    } catch (error) {
+        console.error('프로필 정보 로드 오류:', error);
+    }
 } 
