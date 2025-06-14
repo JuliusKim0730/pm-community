@@ -330,7 +330,8 @@ function updateUserManagementMenu(userRole) {
     
     // boardManager가 초기화될 때까지 대기
     if (window.boardManager && window.boardManager.canManageUsers) {
-        const canManage = window.boardManager.canManageUsers(userRole || 'general');
+        // 슈퍼바이저와 운영진만 회원 관리 메뉴 표시
+        const canManage = userRole === 'supervisor' || userRole === 'admin';
         userManagementMenu.style.display = canManage ? 'block' : 'none';
         console.log('회원 관리 메뉴 업데이트:', userRole, canManage ? '표시' : '숨김');
     } else {

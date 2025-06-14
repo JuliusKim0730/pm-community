@@ -570,9 +570,15 @@ function showWriteModal() {
         return;
     }
     
+    // boardManager 초기화 체크
+    if (!window.boardManager || !window.boardManager.userRoles) {
+        alert('시스템이 아직 초기화 중입니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+    
     // 글쓰기 권한 체크
-    const userRole = window.currentUser.role || boardManager.userRoles.GENERAL;
-    if (!boardManager.canWritePost(userRole)) {
+    const userRole = window.currentUser.role || window.boardManager.userRoles.GENERAL;
+    if (!window.boardManager.canWritePost(userRole)) {
         alert('글 작성 권한이 없습니다. 핵심 회원 이상만 글을 작성할 수 있습니다.');
         return;
     }
@@ -731,8 +737,8 @@ async function showFullPost(postId, boardId) {
         const date = post.createdAt ? post.createdAt.toDate() : (post.date || new Date());
         
         // 삭제 버튼 표시 여부 확인
-        const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
-        const canDelete = boardManager.canDeletePost(userRole);
+        const userRole = window.currentUser?.role || (window.boardManager?.userRoles?.GENERAL || 'general');
+        const canDelete = window.boardManager?.canDeletePost(userRole) || false;
         
         // 모달 생성 및 표시
         const modal = document.createElement('div');
@@ -788,8 +794,8 @@ async function showFullPost(postId, boardId) {
 // 게시글 삭제 함수
 async function deletePost(postId, boardId) {
     // 권한 재확인
-    const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
-    if (!boardManager.canDeletePost(userRole)) {
+    const userRole = window.currentUser?.role || 'general';
+    if (!window.boardManager?.canDeletePost(userRole)) {
         alert('게시글 삭제 권한이 없습니다.');
         return;
     }
@@ -1660,10 +1666,10 @@ function getCurrentBoardId() {
 
 // 회원 관리 페이지 함수들
 function showUserManagementPage() {
-    // 권한 확인
-    const userRole = window.currentUser?.role || boardManager.userRoles.GENERAL;
-    if (!boardManager.canManageUsers(userRole)) {
-        alert('회원 관리 권한이 없습니다.');
+    // 권한 확인 - 슈퍼바이저와 운영진만 접근 가능
+    const userRole = window.currentUser?.role || 'general';
+    if (userRole !== 'supervisor' && userRole !== 'admin') {
+        alert('회원 관리 권한이 없습니다. 슈퍼바이저 또는 운영진만 접근할 수 있습니다.');
         return;
     }
     
