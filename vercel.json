@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "pm-community",
+  "alias": ["pm-community.vercel.app"],
   "builds": [
     {
       "src": "index.html",
