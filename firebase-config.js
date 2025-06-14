@@ -115,7 +115,7 @@ function isFirestoreReady() {
 }
 
 // 구글 로그인 함수 개선 - CORS 정책 문제 해결
-async function signInWithGoogle() {
+window.signInWithGoogle = async function signInWithGoogle() {
     try {
         console.log('구글 로그인 시도 중...');
         
@@ -232,7 +232,7 @@ auth.getRedirectResult().then((result) => {
 });
 
 // 로그아웃 함수
-async function signOut() {
+window.signOut = async function signOut() {
     try {
         await auth.signOut();
         console.log('로그아웃 완료');
@@ -343,13 +343,9 @@ function updateUserManagementMenu(userRole) {
         const canManage = userRole === 'supervisor' || userRole === 'admin';
         userManagementMenu.style.display = canManage ? 'block' : 'none';
         console.log('회원 관리 메뉴 업데이트:', userRole, canManage ? '표시' : '숨김');
-            } else {
-            // boardManager가 아직 초기화되지 않은 경우 잠시 후 재시도
-            console.log('boardManager 초기화 대기 중...');
-            setTimeout(() => {
-                updateUserManagementMenu(userRole);
-            }, 1000);
-        }
+    } else {
+        // boardManager가 아직 초기화되지 않은 경우 잠시 후 재시도
+        console.log('boardManager 초기화 대기 중...');
         setTimeout(() => {
             updateUserManagementMenu(userRole);
         }, 1000);

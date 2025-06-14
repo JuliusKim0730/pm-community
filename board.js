@@ -32,46 +32,53 @@ class HybridBoardManager {
         console.log('BoardManager 초기화 시작...');
         
         // Firebase 초기화 대기
+        let firebaseReady = false;
         if (!window.firebaseInitialized) {
             console.log('Firebase 초기화 대기 중...');
-            await this.waitForFirebase();
+            firebaseReady = await this.waitForFirebase();
+        } else {
+            firebaseReady = true;
         }
         
-        // postsCollection 확인
-        if (!window.postsCollection) {
-            console.error('postsCollection이 정의되지 않았습니다.');
-            return;
-        }
-        
-        try {
-            // 기존 사용자들의 등급 업데이트 (일회성)
+        if (firebaseReady && window.postsCollection) {
             try {
-                await this.updateExistingUsersRoles();
+                // 기존 사용자들의 등급 업데이트 (일회성)
+                try {
+                    await this.updateExistingUsersRoles();
+                } catch (error) {
+                    console.error('사용자 등급 업데이트 오류:', error);
+                }
+                
+                await this.initSampleData();
+                console.log('BoardManager Firebase 모드로 초기화 완료');
             } catch (error) {
-                console.error('사용자 등급 업데이트 오류:', error);
+                console.error('BoardManager Firebase 초기화 오류:', error);
+                console.log('로컬 모드로 전환합니다.');
+                this.loadLocalPosts();
             }
-            
-            await this.initSampleData();
-            console.log('BoardManager Firebase 모드로 초기화 완료');
-        } catch (error) {
-            console.error('BoardManager 초기화 오류:', error);
-            // Firebase 오류여도 계속 Firebase 사용 시도
+        } else {
+            console.log('Firebase 사용 불가 - 로컬 모드로 초기화');
+            this.loadLocalPosts();
         }
+        
+        console.log('BoardManager 초기화 완료');
     }
 
     // Firebase 초기화 대기
-    async waitForFirebase(maxWait = 10000) {
+    async waitForFirebase(maxWait = 15000) {
         const startTime = Date.now();
         
         while (!window.firebaseInitialized && (Date.now() - startTime) < maxWait) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
         
         if (!window.firebaseInitialized) {
-            throw new Error('Firebase 초기화 타임아웃');
+            console.warn('Firebase 초기화 타임아웃 - 로컬 모드로 계속 진행');
+            return false;
         }
         
         console.log('Firebase 초기화 완료 확인');
+        return true;
     }
 
     // Firestore 접근 가능 여부 확인
