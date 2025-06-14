@@ -275,6 +275,35 @@ body {
     padding: 2rem;
 }
 
+/* 로딩 및 오류 메시지 */
+.loading {
+    text-align: center;
+    color: #00d4ff;
+    padding: 2rem;
+    font-size: 1.1rem;
+}
+
+.loading::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+
+.error {
+    text-align: center;
+    color: #ff6b6b;
+    padding: 2rem;
+    background: #2a1a1a;
+    border-radius: 8px;
+    border: 1px solid #ff6b6b;
+}
+
 /* 게시판 페이지 - 다크테마 */
 .board-container {
     margin-top: 95px;
@@ -696,6 +725,63 @@ body {
     font-size: 0.9rem;
     color: #888;
     font-style: italic;
+}
+
+/* 게시글 상세보기 모달 */
+.post-detail-modal {
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.post-detail-meta {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.post-detail-info {
+    display: flex;
+    gap: 1.5rem;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.post-detail-info i {
+    color: #00d4ff;
+    margin-right: 0.3rem;
+}
+
+.post-detail-content {
+    line-height: 1.8;
+    color: #e0e0e0;
+    margin-bottom: 1.5rem;
+}
+
+.post-detail-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.post-detail-source {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border-left: 3px solid #00d4ff;
+}
+
+.post-detail-source h4 {
+    color: #00d4ff;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.post-detail-source p {
+    color: #b0b0b0;
+    margin: 0;
 }
 
 /* 푸터 - 다크테마 */

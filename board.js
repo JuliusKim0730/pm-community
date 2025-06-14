@@ -480,8 +480,8 @@ async function updatePostsList(boardId) {
                         <span class="post-date"><i class="fas fa-calendar"></i> ${formatDate(post.date)}</span>
                     </div>
                 </div>
-                <div class="post-preview">
-                    ${post.content.replace(/<[^>]*>/g, '').substring(0, 150)}...
+                <div class="post-content">
+                    ${post.content.replace(/<[^>]*>/g, '').substring(0, 200)}${post.content.length > 200 ? '...' : ''}
                 </div>
                 ${post.source ? `<div class="post-source"><i class="fas fa-link"></i> ${post.source}</div>` : ''}
                 <div class="post-actions">
@@ -516,21 +516,26 @@ async function updateRecentPosts() {
             return;
         }
         
+        // 그리드 컨테이너 생성
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'recent-posts-grid';
+        
         posts.forEach(post => {
             const postElement = document.createElement('div');
-            postElement.className = 'recent-post-item';
+            postElement.className = 'recent-post-card';
             postElement.innerHTML = `
-                <div class="recent-post-content">
-                    <div class="recent-post-board">${post.boardName}</div>
-                    <h4 class="recent-post-title" onclick="showBoard('${post.boardId}')">${post.title}</h4>
-                    <div class="recent-post-meta">
-                        <span class="recent-post-author">${post.author}</span>
-                        <span class="recent-post-date">${formatDate(post.date)}</span>
-                    </div>
+                <div class="recent-post-category">${post.boardName}</div>
+                <h4 class="recent-post-title" onclick="showBoard('${post.boardId}')">${post.title}</h4>
+                <div class="recent-post-preview">${post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...</div>
+                <div class="recent-post-meta">
+                    <span class="recent-post-author">${post.author}</span>
+                    <span class="recent-post-date">${formatDate(post.date)}</span>
                 </div>
             `;
-            recentPostsContainer.appendChild(postElement);
+            gridContainer.appendChild(postElement);
         });
+        
+        recentPostsContainer.appendChild(gridContainer);
     } catch (error) {
         console.error('최근 게시글 업데이트 오류:', error);
         recentPostsContainer.innerHTML = '<div class="error">최근 게시글을 불러오는 중 오류가 발생했습니다.</div>';
