@@ -581,7 +581,15 @@ async function updateRecentPosts() {
         if (posts.length === 0) {
             recentPostsContainer.innerHTML = `
                 <div class="no-recent-posts">
-                    <p>최근 게시글이 없습니다.</p>
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>최근 게시글이 없습니다.</h3>
+                        <p>아직 등록된 게시글이 없습니다.<br>
+                        첫 번째 게시글을 작성해보세요!</p>
+                        <button class="btn btn-primary" onclick="showWriteModal()">
+                            <i class="fas fa-edit"></i> 글쓰기
+                        </button>
+                    </div>
                 </div>
             `;
             return;
@@ -618,7 +626,12 @@ function showWriteModal() {
     // 로그인 체크
     if (!window.currentUser) {
         alert('글을 작성하려면 로그인이 필요합니다.');
-        signInWithGoogle();
+        // signInWithGoogle 함수가 정의되어 있는지 확인
+        if (typeof window.signInWithGoogle === 'function') {
+            window.signInWithGoogle();
+        } else {
+            console.error('signInWithGoogle 함수가 정의되지 않았습니다.');
+        }
         return;
     }
     
@@ -635,17 +648,34 @@ function showWriteModal() {
         return;
     }
     
-    document.getElementById('write-modal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
+    // 모달 요소가 존재하는지 확인
+    const writeModal = document.getElementById('write-modal');
+    if (writeModal) {
+        writeModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    } else {
+        console.error('write-modal 요소를 찾을 수 없습니다.');
+        alert('글쓰기 모달을 열 수 없습니다. 페이지를 새로고침해주세요.');
+    }
 }
 
 function closeWriteModal() {
-    document.getElementById('write-modal').style.display = 'none';
+    const writeModal = document.getElementById('write-modal');
+    if (writeModal) {
+        writeModal.style.display = 'none';
+    }
     document.body.style.overflow = 'auto';
     
-    // 폼 초기화
-    document.getElementById('write-form').reset();
-    document.getElementById('post-content').innerHTML = '';
+    // 폼 초기화 - 요소 존재 확인
+    const writeForm = document.getElementById('write-form');
+    if (writeForm) {
+        writeForm.reset();
+    }
+    
+    const postContent = document.getElementById('post-content');
+    if (postContent) {
+        postContent.innerHTML = '';
+    }
 }
 
 // 글쓰기 폼 제출 처리 (Firebase)
@@ -708,11 +738,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // 텍스트 포맷팅 함수들
 function formatText(command) {
     document.execCommand(command, false, null);
-    document.getElementById('post-content').focus();
+    const postContent = document.getElementById('post-content');
+    if (postContent) {
+        postContent.focus();
+    }
 }
 
 function insertImage() {
-    document.getElementById('image-upload').click();
+    const imageUpload = document.getElementById('image-upload');
+    if (imageUpload) {
+        imageUpload.click();
+    } else {
+        console.error('image-upload 요소를 찾을 수 없습니다.');
+    }
 }
 
 async function handleImageUpload(event) {
@@ -746,7 +784,10 @@ async function handleImageUpload(event) {
                 async () => {
                     const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
                     const img = `<img src="${downloadURL}" alt="업로드된 이미지" style="max-width: 100%; height: auto; margin: 10px 0;">`;
-                    document.getElementById('post-content').innerHTML += img;
+                    const postContent = document.getElementById('post-content');
+                    if (postContent) {
+                        postContent.innerHTML += img;
+                    }
                     console.log('Firebase 이미지 업로드 완료:', downloadURL);
                 }
             );
@@ -764,7 +805,10 @@ function handleLocalImageUpload(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = `<img src="${e.target.result}" alt="업로드된 이미지" style="max-width: 100%; height: auto; margin: 10px 0;">`;
-        document.getElementById('post-content').innerHTML += img;
+        const postContent = document.getElementById('post-content');
+        if (postContent) {
+            postContent.innerHTML += img;
+        }
         console.log('로컬 이미지 업로드 완료');
     };
     reader.readAsDataURL(file);
@@ -874,16 +918,18 @@ async function deletePost(postId, boardId) {
             window.boardManager.saveLocalPosts();
         }
         
-        // 모달 닫기
-        const modal = document.querySelector('.modal');
-        if (modal) {
+        // 모든 모달 닫기 (삭제 확인 팝업 포함)
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
             modal.remove();
-            document.body.style.overflow = 'auto';
-        }
+        });
+        document.body.style.overflow = 'auto';
         
-        // 게시글 목록 새로고침
-        updatePostsList(boardId);
+        // 성공 메시지 표시
         alert('게시글이 삭제되었습니다.');
+        
+        // 홈페이지로 이동하여 최근 게시글 업데이트
+        await showHomePage();
         
     } catch (error) {
         console.error('게시글 삭제 오류:', error);
@@ -1612,36 +1658,46 @@ function updatePostsListWithPagination(boardId, posts) {
     const endIndex = startIndex + POSTS_PER_PAGE;
     const currentPosts = posts.slice(startIndex, endIndex);
     
-    let html = '<div class="posts-container">';
+    let html = '';
     
     if (currentPosts.length === 0) {
         html += `
             <div class="empty-state">
                 <i class="fas fa-clipboard-list"></i>
                 <h3>아직 게시글이 없습니다</h3>
-                <p>첫 번째 게시글을 작성해보세요!</p>
+                <p>이 게시판에 첫 번째 게시글을 작성해보세요!<br>
+                PM 커뮤니티가 함께 성장할 수 있도록 경험을 공유해주세요.</p>
+                <button class="btn btn-primary" onclick="showWriteModal()">
+                    <i class="fas fa-edit"></i> 글쓰기
+                </button>
             </div>
         `;
     } else {
+        html += '<div class="posts-grid">';
         currentPosts.forEach(post => {
-            const date = post.date ? new Date(post.date).toLocaleDateString() : '날짜 없음';
+            const date = post.date ? formatDate(new Date(post.date)) : '날짜 없음';
+            const contentPreview = post.content.replace(/<[^>]*>/g, '').substring(0, 150);
             html += `
-                <div class="post-item" onclick="showFullPost('${post.id}', '${boardId}')">
-                    <div class="post-header">
-                        <h3 class="post-title">${post.title}</h3>
-                        <span class="post-date">${date}</span>
+                <div class="post-card" onclick="showFullPost('${post.id}', '${boardId}')">
+                    <div class="post-card-header">
+                        <h3 class="post-card-title">${post.title}</h3>
+                        <div class="post-card-meta">
+                            <span class="post-card-date"><i class="fas fa-clock"></i> ${date}</span>
+                            <span class="post-card-author"><i class="fas fa-user"></i> ${post.author || '익명'}</span>
+                        </div>
                     </div>
-                    <div class="post-preview">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</div>
-                    <div class="post-footer">
-                        <span class="post-author">작성자: ${post.author || '익명'}</span>
-                        ${post.source ? `<span class="post-source">출처: ${post.source}</span>` : ''}
+                    <div class="post-card-content">
+                        <p class="post-card-preview">${contentPreview}${post.content.length > 150 ? '...' : ''}</p>
+                        ${post.source ? `<div class="post-card-source"><i class="fas fa-link"></i> 출처: ${post.source}</div>` : ''}
+                    </div>
+                    <div class="post-card-footer">
+                        <span class="post-card-read-more">자세히 보기 <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </div>
             `;
         });
+        html += '</div>';
     }
-    
-    html += '</div>';
     
     // 페이지네이션 컨트롤 추가
     if (totalPages > 1) {

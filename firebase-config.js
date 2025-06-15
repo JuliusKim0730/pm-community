@@ -416,20 +416,6 @@ function showServiceNotice() {
     }
 }
 
-// 인증 상태 변화 감지
-auth.onAuthStateChanged(function(user) {
-    if (user) {
-        console.log('인증 상태 변화 - 로그인됨:', user.email);
-        window.currentUser = user;
-        updateUIForLoggedInUser(user);
-        checkUserProfile(user);
-    } else {
-        console.log('인증 상태 변화 - 로그아웃됨');
-        window.currentUser = null;
-        updateUIForLoggedOutUser();
-    }
-});
-
 // DOM 로드 완료 후 초기 상태 확인
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM 로드 완료 - 초기 인증 상태 확인');
