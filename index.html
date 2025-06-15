@@ -49,10 +49,11 @@
                                 PM을 위한 공부 <i class="fas fa-chevron-down"></i>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a href="#" onclick="showBoard('news')"><i class="fas fa-newspaper"></i> 뉴스</a></li>
+                                <li><a href="#" onclick="showBoard('news')"><i class="fas fa-chart-line"></i> 역량 강화</a></li>
                                 <li><a href="#" onclick="showBoard('policy-library')"><i class="fas fa-university"></i> 정책도서관</a></li>
                                 <li><a href="#" onclick="showBoard('study')"><i class="fas fa-users"></i> 스터디</a></li>
                                 <li><a href="#" onclick="showCategory('books')"><i class="fas fa-book"></i> 추천도서</a></li>
+                                <li><a href="#" onclick="showServiceQualificationPage()"><i class="fas fa-certificate"></i> 서비스경험디자인 자격증</a></li>
                             </ul>
                         </li>
                         
@@ -133,9 +134,9 @@
                             <p>각자의 취업, 이직, 면접, 직무 전환, 서류 준비 노하우를 알려달라고 적어줘</p>
                         </div>
                         <div class="category-card" onclick="showBoard('news')">
-                            <i class="fas fa-newspaper"></i>
-                            <h3>뉴스</h3>
-                            <p>PM 업계 트렌드와 채용 정보</p>
+                            <i class="fas fa-chart-line"></i>
+                            <h3>역량 강화</h3>
+                            <p>PM 업계 트렌드와 스킬 향상 정보</p>
                         </div>
                         <div class="category-card" onclick="showBoard('policy-library')">
                             <i class="fas fa-book"></i>
@@ -504,6 +505,70 @@
                 <!-- 회원 목록 -->
                 <div class="users-list" id="users-list">
                     <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 서비스경험디자인 자격증 페이지 -->
+    <div id="service-qualification-page" class="page-content" style="display: none;">
+        <div class="container">
+            <div class="service-qualification-container">
+                <div class="service-qualification-header">
+                    <button class="back-btn" onclick="showHomePage()">
+                        <i class="fas fa-arrow-left"></i> 홈으로
+                    </button>
+                    <h1 class="service-qualification-title">🏆 서비스경험디자인 자격증</h1>
+                </div>
+                
+                <div class="service-qualification-content">
+                    <div class="qualification-card">
+                        <div class="qualification-info">
+                            <h2>📚 서비스 경험 디자인 필기시험 공부사이트</h2>
+                            <p class="qualification-description">
+                                서비스 경험 디자인 필기시험을 위한 공부사이트입니다.<br>
+                                언제든 편할 때 접속해서 시험준비를 해보세요.
+                            </p>
+                            
+                            <div class="qualification-features">
+                                <div class="feature-item">
+                                    <i class="fas fa-book-open"></i>
+                                    <span>체계적인 문제 은행</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>실전 모의시험</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <span>진도 관리 시스템</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <span>모바일 최적화</span>
+                                </div>
+                            </div>
+                            
+                            <div class="qualification-cta">
+                                <a href="https://service-quali-test.vercel.app/" target="_blank" class="qualification-btn">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    시험 공부하러 가기
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="qualification-preview">
+                            <div class="preview-container" onclick="window.open('https://service-quali-test.vercel.app/', '_blank')">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMUUxRTFFIiByeD0iMTIiLz4KPHN2ZyB4PSIyMCIgeT0iMjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjYwIj4KPCEtLSBIZWFkZXIgLS0+CjxyZWN0IHdpZHRoPSIzNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMwMGQ0ZmYiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjE4MCIgeT0iNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfkIYg54Oc67mE7KeA7ZWp7KCdPC90ZXh0PgoKPCEtLSBDb250ZW50IC0tPgo8cmVjdCB5PSI4MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxNjAiIGZpbGw9IiMzMzMzMzMiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjIwIiB5PSIxMTAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfkZEg66y47KCcIDUgLyA4MDwvdGV4dD4KPHN2ZyB4PSIyMCIgeT0iMTIwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjEwIj4KPHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzU1NTU1NSIgcng9IjUiLz4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDBkNGZmIiByeD0iNSIvPgo8L3N2Zz4KCjx0ZXh0IHg9IjIwIiB5PSIxNjAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiI+PHRzcGFuPuuLpOydjCDstpEgZGXsnbjsnbTsi6TsnZgg6riw64WQ7JeQ64yA7ZWcIOyEpOuqhTwvdHNwYW4+PC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iMTgwIiBmaWxsPSIjZmZmZmZmIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiPu2YuOuLtOyeoOqwgOyngCDsmKvsp4Ag6rKD7J2AID88L3RleHQ+Cgo8IS0tIE9wdGlvbnMgLS0+CjxyZWN0IHg9IjIwIiB5PSIxOTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzAiIGZpbGw9IiM0NDQ0NDQiIHJ4PSI0Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIyMTAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCI+MS4g642w7J207J286rCEPC90ZXh0PgoKPC9zdmc+Cgo8IS0tIEZvb3RlciAtLT4KPHJlY3QgeT0iMjUwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMjIyMjIyIiByeD0iOCIvPgo8dGV4dCB4PSIxODAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzAwZDRmZiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj7qsJzqsIDsnbTrk5zsiqTsnZg8L3RleHQ+CjwvZz4KPC9zdmc+" 
+                                     alt="서비스경험디자인 자격증 사이트 미리보기" 
+                                     class="preview-image" />
+                                <div class="preview-overlay">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>사이트 바로가기</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

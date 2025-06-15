@@ -3203,4 +3203,195 @@ body {
         padding: 0.4rem 0.8rem;
         font-size: 0.8rem;
     }
-} 
+}
+
+/* 서비스경험디자인 자격증 페이지 스타일 */
+.service-qualification-container {
+    padding: 2rem 0;
+}
+
+.service-qualification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding: 1.5rem 0;
+    border-bottom: 2px solid #333;
+}
+
+.service-qualification-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.qualification-card {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+.qualification-info h2 {
+    color: #00d4ff;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.qualification-description {
+    color: #b0b0b0;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+}
+
+.qualification-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.feature-item i {
+    color: #00d4ff;
+    font-size: 1.2rem;
+}
+
+.feature-item span {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.qualification-cta {
+    text-align: center;
+}
+
+.qualification-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+    color: #000000;
+    padding: 1.2rem 2.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+    border: none;
+    cursor: pointer;
+}
+
+.qualification-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0, 212, 255, 0.4);
+    background: linear-gradient(135deg, #0099cc 0%, #00d4ff 100%);
+    color: #000000;
+    text-decoration: none;
+}
+
+.qualification-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.preview-container {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.preview-container:hover {
+    transform: scale(1.05);
+    box-shadow: 0 20px 60px rgba(0, 212, 255, 0.2);
+}
+
+.preview-image {
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    display: block;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border-radius: 16px;
+}
+
+.preview-container:hover .preview-overlay {
+    opacity: 1;
+}
+
+.preview-overlay i {
+    color: #00d4ff;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.preview-overlay span {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    .qualification-card {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 2rem;
+    }
+    
+    .service-qualification-title {
+        font-size: 2rem;
+    }
+    
+    .qualification-features {
+        grid-template-columns: 1fr;
+    }
+    
+    .service-qualification-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .back-btn {
+        align-self: flex-start;
+    }
+}
+
+/* 서비스경험디자인 자격증 페이지 끝 */ 

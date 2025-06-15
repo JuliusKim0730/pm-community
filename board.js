@@ -297,7 +297,7 @@ class HybridBoardManager {
     boardNames = {
         'job-info': '직무',
         'career-prep': '취업준비', 
-        'news': '뉴스',
+        'news': '역량 강화',
         'faq': '자주나오는 질문',
         'policy-library': '정책도서관',
         'study': '스터디'
@@ -319,7 +319,14 @@ class HybridBoardManager {
     };
 
     // 등급별 권한 확인
-    canWritePost(userRole) {
+    canWritePost(userRole, boardId = null) {
+        // FAQ 게시판은 슈퍼바이저와 운영진만 글쓰기 가능
+        if (boardId === 'faq') {
+            return userRole === this.userRoles.SUPERVISOR || 
+                   userRole === this.userRoles.ADMIN;
+        }
+        
+        // 다른 게시판은 기존 권한 유지 (핵심 이상)
         return userRole === this.userRoles.SUPERVISOR || 
                userRole === this.userRoles.ADMIN || 
                userRole === this.userRoles.CORE;
@@ -460,6 +467,9 @@ async function showHomePage() {
     if (booksPage) booksPage.style.display = 'none';
     if (consultingPage) consultingPage.style.display = 'none';
     
+    const serviceQualificationPage = document.getElementById('service-qualification-page');
+    if (serviceQualificationPage) serviceQualificationPage.style.display = 'none';
+    
     // boardManager 초기화 완료 대기
     if (window.boardManager && typeof window.boardManager.initializeManager === 'function') {
         try {
@@ -489,6 +499,9 @@ function showBoard(boardId) {
     if (booksPage) booksPage.style.display = 'none';
     if (consultingPage) consultingPage.style.display = 'none';
     
+    const serviceQualificationPage = document.getElementById('service-qualification-page');
+    if (serviceQualificationPage) serviceQualificationPage.style.display = 'none';
+    
     // 게시판 제목 설정
     if (boardTitle && window.boardManager) {
         boardTitle.textContent = window.boardManager.getBoardName(boardId);
@@ -502,6 +515,9 @@ function showBoard(boardId) {
     
     // 게시글 목록 업데이트
     updatePostsList(boardId);
+    
+    // 글쓰기 버튼 가시성 업데이트
+    updateWriteButtonVisibility(boardId);
 }
 
 function showCategory(category) {
@@ -515,6 +531,7 @@ function showBooksPage() {
     document.getElementById('board-page').style.display = 'none';
     document.getElementById('books-page').style.display = 'block';
     document.getElementById('consulting-page').style.display = 'none';
+    document.getElementById('service-qualification-page').style.display = 'none';
     loadBooks();
 }
 
@@ -523,12 +540,21 @@ function showConsultingPage() {
     document.getElementById('board-page').style.display = 'none';
     document.getElementById('books-page').style.display = 'none';
     document.getElementById('consulting-page').style.display = 'block';
+    document.getElementById('service-qualification-page').style.display = 'none';
     
     // 슬라이드쇼 초기화
     setTimeout(() => {
         initReviewSlideshow();
         startAutoSlide();
     }, 100);
+}
+
+function showServiceQualificationPage() {
+    document.getElementById('home-page').style.display = 'none';
+    document.getElementById('board-page').style.display = 'none';
+    document.getElementById('books-page').style.display = 'none';
+    document.getElementById('consulting-page').style.display = 'none';
+    document.getElementById('service-qualification-page').style.display = 'block';
 }
 
 // 게시글 목록 업데이트 (하이브리드)
@@ -641,10 +667,17 @@ function showWriteModal() {
         return;
     }
     
-    // 글쓰기 권한 체크
+    // 현재 게시판 확인
+    const currentBoardId = getCurrentBoardId();
+    
+    // 글쓰기 권한 체크 (게시판별)
     const userRole = window.currentUser.role || 'general';
-    if (!window.boardManager.canWritePost(userRole)) {
-        alert('글 작성 권한이 없습니다. 핵심 회원 이상만 글을 작성할 수 있습니다.');
+    if (!window.boardManager.canWritePost(userRole, currentBoardId)) {
+        if (currentBoardId === 'faq') {
+            alert('자주나오는 질문 게시판은 운영진과 슈퍼바이저만 글을 작성할 수 있습니다.');
+        } else {
+            alert('글 작성 권한이 없습니다. 핵심 회원 이상만 글을 작성할 수 있습니다.');
+        }
         return;
     }
     
@@ -1767,7 +1800,7 @@ function getCurrentBoardId() {
             const titleToBoardId = {
                 '직무': 'job-info',
                 '취업준비': 'career-prep',
-                '뉴스': 'news',
+                '역량 강화': 'news',
                 '정책도서관': 'policy-library',
                 '자주나오는 질문': 'faq',
                 '스터디': 'study'
@@ -1776,6 +1809,27 @@ function getCurrentBoardId() {
         }
     }
     return null;
+}
+
+// 글쓰기 버튼 표시/숨김 제어
+function updateWriteButtonVisibility(boardId) {
+    const writeBtn = document.querySelector('.write-btn');
+    if (!writeBtn) return;
+    
+    // 로그인 안 된 경우 버튼 숨김
+    if (!window.currentUser) {
+        writeBtn.style.display = 'none';
+        return;
+    }
+    
+    const userRole = window.currentUser.role || 'general';
+    const canWrite = window.boardManager?.canWritePost(userRole, boardId);
+    
+    if (canWrite) {
+        writeBtn.style.display = 'flex';
+    } else {
+        writeBtn.style.display = 'none';
+    }
 }
 
 // 회원 관리 페이지 함수들

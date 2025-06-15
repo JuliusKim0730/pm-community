@@ -271,6 +271,11 @@ function updateUIForLoggedInUser(user) {
         loginBtn.innerHTML = '<i class="fab fa-google"></i> 로그인';
     }
     
+    // 글쓰기 버튼 가시성 업데이트 (현재 게시판에 대해)
+    if (typeof updateWriteButtonVisibility === 'function' && typeof getCurrentBoardId === 'function') {
+        updateWriteButtonVisibility(getCurrentBoardId());
+    }
+    
     console.log('로그인 UI 업데이트 완료');
 }
 
@@ -368,6 +373,11 @@ function updateUIForLoggedOutUser() {
         userDropdown.style.display = 'none';
         userDropdown.classList.remove('active');
         console.log('사용자 드롭다운 숨김');
+    }
+    
+    // 글쓰기 버튼 숨김 (로그아웃 시)
+    if (typeof updateWriteButtonVisibility === 'function' && typeof getCurrentBoardId === 'function') {
+        updateWriteButtonVisibility(getCurrentBoardId());
     }
     
     console.log('로그아웃 UI 업데이트 완료');
